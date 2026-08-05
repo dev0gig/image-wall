@@ -20,19 +20,42 @@ const USER_AGENT = 'image-wall/1.0 (+https://dev0gig.github.io/image-wall/)';
 /** So lange darf eine Antwort zwischengespeichert werden (Sekunden). */
 const CACHE_SECONDS = 300;
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Max-Age': '86400'
-};
+/**
+ * Nur diese Seiten duerfen den Vermittler benutzen.
+ *
+ * Das ist kein Schutz gegen Menschen - die Seite selbst steht jedem offen.
+ * Es verhindert, dass eine *fremde Webseite* den Vermittler in ihr eigenes
+ * Projekt einbaut und das Tageskontingent aufbraucht. Ein Programm ausserhalb
+ * eines Browsers kann die Herkunft faelschen; gegen Trittbrettfahrer im Netz
+ * reicht es trotzdem.
+ */
+const ALLOWED_ORIGINS = [
+  'https://dev0gig.github.io',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
 
-function json(data, status = 200) {
+/** Erlaubte Herkunft -> CORS-Kopfzeilen, sonst `null`. */
+function corsFor(origin) {
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return null;
+
+  return {
+    'Access-Control-Allow-Origin': origin,
+    // Ohne `Vary` koennte eine zwischengespeicherte Antwort mit der Erlaubnis
+    // fuer die eine Seite an eine andere ausgeliefert werden.
+    Vary: 'Origin',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Max-Age': '86400'
+  };
+}
+
+function json(data, status, cors) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': `public, max-age=${CACHE_SECONDS}`,
-      ...CORS
+      ...cors
     }
   });
 }
@@ -100,11 +123,22 @@ function extractImages(xml) {
 
 export default {
   async fetch(request) {
+    const cors = corsFor(request.headers.get('Origin'));
+
+    // Anfragen von fremden Seiten (oder ganz ohne Herkunft) gar nicht erst
+    // beantworten - siehe ALLOWED_ORIGINS.
+    if (!cors) {
+      return new Response('Dieser Vermittler beantwortet nur Anfragen von image-wall.\n', {
+        status: 403,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
+    }
+
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS });
+      return new Response(null, { status: 204, headers: cors });
     }
     if (request.method !== 'GET') {
-      return json({ error: 'Nur GET.' }, 405);
+      return json({ error: 'Nur GET.' }, 405, cors);
     }
 
     const url = new URL(request.url);
@@ -114,7 +148,7 @@ export default {
     // untergeschoben bekommt.
     const sub = (url.searchParams.get('sub') || '').replace(/[^A-Za-z0-9_]/g, '');
     if (!sub) {
-      return json({ error: 'Kein Subreddit angegeben (?sub=EarthPorn).' }, 400);
+      return json({ error: 'Kein Subreddit angegeben (?sub=EarthPorn).' }, 400, cors);
     }
 
     const wanted = Number(url.searchParams.get('limit')) || DEFAULT_LIMIT;
@@ -128,13 +162,14 @@ export default {
         cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true }
       });
     } catch {
-      return json({ error: 'Reddit war nicht erreichbar.' }, 502);
+      return json({ error: 'Reddit war nicht erreichbar.' }, 502, cors);
     }
 
     if (!response.ok) {
       return json(
         { error: `Reddit antwortet mit ${response.status}.`, status: response.status },
-        502
+        502,
+        cors
       );
     }
 
@@ -143,10 +178,10 @@ export default {
     // Wird Reddit die Anfrage zu viel, antwortet es auch schon mal mit einem
     // freundlichen 200 und einem leeren Rumpf. Das ist kein "keine Bilder".
     if (!xml.includes('<entry>')) {
-      return json({ error: 'Reddit hat keinen Feed geliefert (vermutlich gedrosselt).' }, 502);
+      return json({ error: 'Reddit hat keinen Feed geliefert (vermutlich gedrosselt).' }, 502, cors);
     }
 
     const images = extractImages(xml).slice(0, limit);
-    return json({ subreddit: sub, count: images.length, images });
+    return json({ subreddit: sub, count: images.length, images }, 200, cors);
   }
 };

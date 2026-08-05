@@ -26,9 +26,9 @@ Antwortet auf alle Adressen; nur `sub` zählt. Fehler kommen als HTTP 400
 
 ## Deployen
 
-Einmalig auf [dash.cloudflare.com](https://dash.cloudflare.com) einen Token
-anlegen: *My Profile → API Tokens → Create Token → Vorlage „Edit Cloudflare
-Workers"*. Dann:
+Auf [dash.cloudflare.com](https://dash.cloudflare.com) einen Token anlegen:
+*My Profile → API Tokens → Create Token → Vorlage „Edit Cloudflare Workers"*.
+Dann:
 
 ```bash
 cd ~/repos/image-wall/worker && CLOUDFLARE_API_TOKEN=<token> npx wrangler deploy
@@ -36,12 +36,22 @@ cd ~/repos/image-wall/worker && CLOUDFLARE_API_TOKEN=<token> npx wrangler deploy
 
 Danach steht die Adresse in der Ausgabe (`https://image-wall-reddit.<name>.workers.dev`).
 
+Der Token gehört **nirgends hineingeschrieben** – nicht ins Repo, nicht in eine
+Datei, nicht in den Chat. Er wird nur für den einen Befehl gebraucht; danach
+kann er im Dashboard gelöscht werden. Ist er einmal irgendwo sichtbar gewesen:
+im Dashboard bei dem Token *Roll* (neuer Wert, gleiche Rechte) oder *Delete*.
+
 ## Zu wissen
 
 - **Freikontingent:** 100.000 Abrufe pro Tag.
-- **Offen für alle** (`Access-Control-Allow-Origin: *`): Jeder darf den
-  Vermittler benutzen. Soll das nur die eigene Seite dürfen, in `src/index.js`
-  bei `CORS` das `*` durch die Adresse der Seite ersetzen.
+- **Nur für die eigene Seite:** Der Vermittler beantwortet ausschließlich
+  Anfragen, die von einer Adresse in `ALLOWED_ORIGINS` kommen (`src/index.js`);
+  alles andere bekommt 403. Das ist keine Sperre gegen Menschen – die Seite
+  selbst steht jedem offen – sondern verhindert, dass **fremde Webseiten** den
+  Vermittler in ihr Projekt einbauen und das Tageskontingent aufbrauchen. Ein
+  Programm außerhalb eines Browsers kann die Herkunft fälschen; gegen
+  Trittbrettfahrer im Netz reicht es trotzdem. Neue Adresse (z. B. eine eigene
+  Domain) → in `ALLOWED_ORIGINS` eintragen und neu deployen.
 - **Zwischenspeicher:** Antworten gelten 5 Minuten. Das schont Reddit und
   verhindert, dass viele Besucher dieselbe Abfrage gleichzeitig auslösen.
 - **Reddit drosselt nach IP.** Sollte der Vermittler dauerhaft
