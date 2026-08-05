@@ -49,6 +49,18 @@ export class App {
   isDownloadingZip = signal(false);
   showHelp = signal(false);
 
+  /**
+   * Kurze Rueckmeldung an einem Knopf: enthaelt den Namen des Knopfes, der
+   * gerade seinen Haken zeigt (z. B. 'save'), sonst null. Braucht es bei
+   * Aktionen, bei denen sonst nichts Sichtbares passiert.
+   */
+  flash = signal<string | null>(null);
+  private flashTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** URL des Bildes, dessen Herz gerade huepft (nur beim Hinzufuegen). */
+  favoritePulse = signal<string | null>(null);
+  private pulseTimer: ReturnType<typeof setTimeout> | undefined;
+
   // Erreichbarkeit der Quellen (Fussleiste)
   sourceStatus = signal<SourceStatus[]>([]);
   isCheckingSources = signal(false);
@@ -126,6 +138,16 @@ export class App {
     return channelLabel(channel);
   }
 
+  /**
+   * Laesst einen Knopf kurz einen Haken zeigen, damit der Klick sichtbar
+   * ankommt. Ein neuer Klick loest den vorherigen Haken ab.
+   */
+  private showFlash(id: string, ms = 1400) {
+    clearTimeout(this.flashTimer);
+    this.flash.set(id);
+    this.flashTimer = setTimeout(() => this.flash.set(null), ms);
+  }
+
   saveCurrentChannel() {
     const input = this.channelName().trim();
     if (!input) return;
@@ -141,6 +163,9 @@ export class App {
         localStorage.setItem('x_saved_channels', JSON.stringify(updated));
       }
     }
+    // Auch wenn die Quelle schon in der Liste stand: Haken zeigen, sonst
+    // wirkt der Knopf kaputt.
+    this.showFlash('save');
   }
 
   removeChannel(channel: string, event: Event) {
@@ -221,8 +246,12 @@ export class App {
       updated = current.filter(f => f.url !== item.url);
     } else {
       updated = [...current, item];
+      // Herz huepft nur beim Hinzufuegen - beim Entfernen waere das verwirrend.
+      clearTimeout(this.pulseTimer);
+      this.favoritePulse.set(item.url);
+      this.pulseTimer = setTimeout(() => this.favoritePulse.set(null), 400);
     }
-    
+
     this.favorites.set(updated);
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('x_favorite_images', JSON.stringify(updated));
@@ -350,6 +379,7 @@ export class App {
     const data = JSON.stringify(this.savedChannels(), null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     saveAs(blob, 'saved_channels.json');
+    this.showFlash('export');
   }
 
   triggerImport() {
@@ -375,6 +405,7 @@ export class App {
             if (isPlatformBrowser(this.platformId)) {
               localStorage.setItem('x_saved_channels', JSON.stringify(merged));
             }
+            this.showFlash('import');
           }
         } catch (err) {
           console.error("Invalid file format");

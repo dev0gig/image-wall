@@ -14,4 +14,32 @@
       transform: translateY(0);
     }
   }
+
+  /* Herz „hüpft" kurz, wenn ein Bild zu den Favoriten kommt – als `animate-pop`. */
+  --animate-pop: pop 0.4s ease-out;
+
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.45);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
+/* Wer Bewegung im System abgeschaltet hat, bekommt keine Animationen. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -24,7 +24,7 @@
         <!-- Menue-Knopf: oeffnet die Seitenleiste als Bottom-Sheet -->
         <button
           (click)="menuOpen.set(true)"
-          class="lg:hidden shrink-0 p-2 -ml-2 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+          class="lg:hidden shrink-0 p-2 -ml-2 rounded-lg text-white/70 hover:text-white hover:bg-white/5 active:bg-white/15 active:scale-90 transition-all duration-150"
           title="Menu"
           aria-label="Menu"
         >
@@ -62,7 +62,7 @@
           <button
             (click)="downloadFavoritesZip()"
             [disabled]="isDownloadingZip() || favorites().length === 0"
-            class="w-full lg:w-auto justify-center bg-white text-black px-6 py-3 lg:py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+            class="w-full lg:w-auto justify-center bg-white text-black px-6 py-3 lg:py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-200 active:bg-neutral-300 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 whitespace-nowrap flex items-center gap-2"
           >
             @if (isDownloadingZip()) {
               <mat-icon class="text-[14px] animate-spin">refresh</mat-icon> Packing...
@@ -88,18 +88,25 @@
             <button
               (click)="saveCurrentChannel()"
               [disabled]="!channelName().trim()"
-              class="bg-neutral-900 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-800 border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              [class]="flash() === 'save'
+                ? 'bg-emerald-600 border-emerald-400'
+                : 'bg-neutral-900 border-white/10 hover:bg-neutral-800 active:bg-neutral-700'"
+              class="text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest active:scale-95 border transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center gap-2"
               title="Save Source"
             >
-              <mat-icon class="text-[14px]">bookmark_add</mat-icon>
+              @if (flash() === 'save') {
+                <mat-icon class="text-[14px] animate-pop">check</mat-icon>
+              } @else {
+                <mat-icon class="text-[14px]">bookmark_add</mat-icon>
+              }
             </button>
             <button
               id="load-button"
               (click)="loadImages()"
               [disabled]="isLoading() || !channelName().trim()"
-              class="bg-white text-black px-4 lg:px-6 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+              class="bg-white text-black px-4 lg:px-6 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-200 active:bg-neutral-300 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 whitespace-nowrap flex items-center justify-center gap-2">
               @if (isLoading()) {
-                Laden...
+                <mat-icon class="text-[14px] animate-spin">refresh</mat-icon> Laden...
               } @else {
                 Retrieve Media
               }
@@ -120,7 +127,7 @@
       @if (images().length > 0) {
         <div id="image-grid" class="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-4 w-full">
           @for (item of images(); track item.url; let i = $index) {
-            <div (click)="openCarousel(i)" class="break-inside-avoid bg-neutral-900 rounded-xl overflow-hidden relative group cursor-pointer shadow-sm mb-3 md:mb-4 inline-block w-full">
+            <div (click)="openCarousel(i)" class="break-inside-avoid bg-neutral-900 rounded-xl overflow-hidden relative group cursor-pointer shadow-sm mb-3 md:mb-4 inline-block w-full active:brightness-75 transition-[filter] duration-150">
               <div class="absolute inset-0 bg-neutral-800 opacity-0 group-hover:opacity-20 transition-opacity z-10 pointer-events-none"></div>
 
               <!-- Source Badge -->
@@ -133,13 +140,14 @@
               <!-- Favorite Button (auf Touch-Geraeten immer sichtbar) -->
               <button
                 (click)="toggleFavorite(item, $event)"
-                class="absolute top-3 right-3 z-30 p-2 rounded-full backdrop-blur-md transition-all flex items-center justify-center shadow-sm"
+                class="absolute top-3 right-3 z-30 p-2 rounded-full backdrop-blur-md transition-all duration-150 active:scale-75 flex items-center justify-center shadow-sm"
                 [class.bg-black/60]="!isFavorite(item.url)"
                 [class.bg-white]="isFavorite(item.url)"
                 [class.text-white]="!isFavorite(item.url)"
                 [class.text-red-500]="isFavorite(item.url)"
                 [class.lg:opacity-0]="!isFavorite(item.url)"
                 [class.lg:group-hover:opacity-100]="!isFavorite(item.url)"
+                [class.animate-pop]="favoritePulse() === item.url"
               >
                 <mat-icon class="text-sm scale-[0.8] leading-none h-4 w-4 flex items-center justify-center">
                   {{ isFavorite(item.url) ? 'favorite' : 'favorite_border' }}
@@ -182,9 +190,12 @@
         (click)="refreshSourceStatus()"
         [disabled]="isCheckingSources()"
         title="Sources reachable? Click to check again"
-        class="text-[9px] uppercase tracking-widest text-white/40 hover:text-white/70 transition-colors flex items-center gap-2 disabled:cursor-wait"
+        class="text-[9px] uppercase tracking-widest text-white/40 hover:text-white/70 active:text-white active:scale-95 transition-all duration-150 flex items-center gap-2 disabled:cursor-wait"
       >
         <span>Sources:</span>
+        @if (isCheckingSources()) {
+          <mat-icon class="text-[12px]! w-3! h-3! leading-none animate-spin">refresh</mat-icon>
+        }
         @if (isCheckingSources() && sourceStatus().length === 0) {
           <span class="text-white/60">Checking…</span>
         } @else {
@@ -226,7 +237,7 @@
           </div>
           <button
             (click)="menuOpen.set(false)"
-            class="p-2 -mr-2 text-white/40 hover:text-white transition-colors shrink-0"
+            class="p-2 -mr-2 text-white/40 hover:text-white active:text-white active:scale-90 transition-all duration-150 shrink-0"
             aria-label="Close"
           >
             <mat-icon>close</mat-icon>
@@ -254,7 +265,7 @@
     >
       <!-- Close Button -->
       <button
-        class="absolute top-6 right-6 text-white/60 hover:text-white transition-colors p-2 z-50"
+        class="absolute top-6 right-6 text-white/60 hover:text-white active:text-white active:scale-90 transition-all duration-150 p-2 z-50"
         (click)="closeCarousel()"
       >
         <mat-icon class="text-3xl">close</mat-icon>
@@ -262,7 +273,7 @@
 
       <!-- Prev Button -->
       <button
-        class="absolute left-4 md:left-10 text-white/60 hover:text-white transition-colors p-4 hidden md:block z-50"
+        class="absolute left-4 md:left-10 text-white/60 hover:text-white active:text-white active:scale-75 transition-all duration-150 p-4 hidden md:block z-50"
         (click)="prevImage($event)"
       >
         <mat-icon class="text-5xl font-light">chevron_left</mat-icon>
@@ -284,7 +295,8 @@
             </div>
             <button
               (click)="toggleFavorite(images()[carouselIndex()], $event)"
-              class="flex items-center justify-center p-2 rounded-full transition-colors"
+              class="flex items-center justify-center p-2 rounded-full transition-all duration-150 active:scale-75"
+              [class.animate-pop]="favoritePulse() === images()[carouselIndex()].url"
               [class.bg-white]="isFavorite(images()[carouselIndex()].url)"
               [class.text-red-500]="isFavorite(images()[carouselIndex()].url)"
               [class.bg-white/10]="!isFavorite(images()[carouselIndex()].url)"
@@ -304,7 +316,7 @@
 
       <!-- Next Button -->
       <button
-        class="absolute right-4 md:right-10 text-white/60 hover:text-white transition-colors p-4 hidden md:block z-50"
+        class="absolute right-4 md:right-10 text-white/60 hover:text-white active:text-white active:scale-75 transition-all duration-150 p-4 hidden md:block z-50"
         (click)="nextImage($event)"
       >
         <mat-icon class="text-5xl font-light">chevron_right</mat-icon>
@@ -323,7 +335,7 @@
         (click)="$event.stopPropagation()"
       >
         <button
-          class="absolute top-6 right-6 text-white/40 hover:text-white transition-colors"
+          class="absolute top-6 right-6 text-white/40 hover:text-white active:text-white active:scale-90 transition-all duration-150"
           (click)="showHelp.set(false)"
         >
           <mat-icon>close</mat-icon>
@@ -387,7 +399,7 @@
       [class.text-black]="viewingAll()"
       [class.bg-neutral-900]="!viewingAll()"
       [class.text-white]="!viewingAll()"
-      class="flex-1 min-w-0 flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-neutral-200 hover:text-black transition-colors"
+      class="flex-1 min-w-0 flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-neutral-200 hover:text-black active:scale-95 transition-all duration-150"
     >
       <mat-icon class="shrink-0 w-[18px]! h-[18px]! text-[18px]! leading-none">grid_view</mat-icon>
       <span class="truncate">Wall View</span>
@@ -399,7 +411,7 @@
       [class.text-black]="viewingFavorites()"
       [class.bg-neutral-900]="!viewingFavorites()"
       [class.text-white]="!viewingFavorites()"
-      class="flex-1 min-w-0 flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-neutral-200 hover:text-black transition-colors"
+      class="flex-1 min-w-0 flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-neutral-200 hover:text-black active:scale-95 transition-all duration-150"
     >
       <mat-icon class="shrink-0 w-[18px]! h-[18px]! text-[18px]! leading-none">favorite</mat-icon>
       <span class="truncate">Favorites</span>
@@ -413,13 +425,13 @@
         <div class="flex items-center justify-between group rounded-lg hover:bg-white/5 transition-colors">
           <button
             (click)="loadChannel(channel)"
-            class="flex-1 min-w-0 text-left px-3 py-2 text-sm text-neutral-300 group-hover:text-white transition-colors truncate"
+            class="flex-1 min-w-0 text-left px-3 py-2 text-sm text-neutral-300 group-hover:text-white active:text-white active:bg-white/10 rounded-lg transition-all duration-150 truncate"
           >
             {{ channelLabel(channel) }}
           </button>
           <button
             (click)="removeChannel(channel, $event)"
-            class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-2 text-neutral-500 hover:text-red-400 transition-all shrink-0"
+            class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-2 text-neutral-500 hover:text-red-400 active:text-red-400 active:scale-75 transition-all duration-150 shrink-0"
             title="Remove"
           >
             <mat-icon class="text-sm scale-75">close</mat-icon>
@@ -436,24 +448,38 @@
 <ng-template #sidebarFooter>
   <div class="text-[9px] uppercase tracking-widest opacity-40 px-1 flex justify-between items-center">
     <span>Data Backup</span>
-    <button (click)="showHelp.set(true)" class="hover:text-white transition-colors text-white/60" title="How to use">
+    <button (click)="showHelp.set(true)" class="hover:text-white active:text-white active:scale-90 transition-all duration-150 text-white/60" title="How to use">
       <mat-icon class="text-[14px]">help_outline</mat-icon>
     </button>
   </div>
   <div class="flex gap-2">
     <button
       (click)="triggerImport()"
-      class="flex-1 bg-neutral-900 text-white p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-800 transition-colors flex justify-center items-center gap-1 border border-white/5"
+      [class]="flash() === 'import'
+        ? 'bg-emerald-600 border-emerald-400'
+        : 'bg-neutral-900 border-white/5 hover:bg-neutral-800 active:bg-neutral-700'"
+      class="flex-1 text-white p-2 rounded-md text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all duration-150 flex justify-center items-center gap-1 border"
       title="Import Channels"
     >
-      <mat-icon class="text-[14px]">file_upload</mat-icon> Import
+      @if (flash() === 'import') {
+        <mat-icon class="text-[14px] animate-pop">check</mat-icon> Imported
+      } @else {
+        <mat-icon class="text-[14px]">file_upload</mat-icon> Import
+      }
     </button>
     <button
       (click)="exportChannels()"
-      class="flex-1 bg-neutral-900 text-white p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-800 transition-colors flex justify-center items-center gap-1 border border-white/5"
+      [class]="flash() === 'export'
+        ? 'bg-emerald-600 border-emerald-400'
+        : 'bg-neutral-900 border-white/5 hover:bg-neutral-800 active:bg-neutral-700'"
+      class="flex-1 text-white p-2 rounded-md text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all duration-150 flex justify-center items-center gap-1 border"
       title="Export Channels"
     >
-      <mat-icon class="text-[14px]">file_download</mat-icon> Export
+      @if (flash() === 'export') {
+        <mat-icon class="text-[14px] animate-pop">check</mat-icon> Exported
+      } @else {
+        <mat-icon class="text-[14px]">file_download</mat-icon> Export
+      }
     </button>
   </div>
 
@@ -461,7 +487,7 @@
   @if (!showClearConfirm()) {
     <button
       (click)="showClearConfirm.set(true)"
-      class="w-full bg-red-950/30 text-red-400 p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-red-900/50 transition-colors flex justify-center items-center gap-2 mt-2 border border-red-900/30"
+      class="w-full bg-red-950/30 text-red-400 p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-red-900/50 active:bg-red-900/70 active:scale-95 transition-all duration-150 flex justify-center items-center gap-2 mt-2 border border-red-900/30"
     >
       <mat-icon class="text-[14px]">delete_sweep</mat-icon> Reset All Data
     </button>
@@ -473,13 +499,13 @@
       <div class="flex gap-2 mt-1">
         <button
           (click)="clearCache()"
-          class="flex-1 bg-red-600 text-white py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 transition-colors"
+          class="flex-1 bg-red-600 text-white py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 active:bg-red-400 active:scale-95 transition-all duration-150"
         >
           Delete
         </button>
         <button
           (click)="showClearConfirm.set(false)"
-          class="flex-1 bg-neutral-800 text-white py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-neutral-700 transition-colors"
+          class="flex-1 bg-neutral-800 text-white py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-neutral-700 active:bg-neutral-600 active:scale-95 transition-all duration-150"
         >
           Cancel
         </button>
