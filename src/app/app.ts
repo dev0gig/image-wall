@@ -238,7 +238,8 @@ export class App {
   }
 
   async loadImages() {
-    const input = this.channelName().trim() || 'ArchDigest';
+    // Enter im leeren Feld zeigt etwas Ansehnliches statt einer Fehlermeldung.
+    const input = this.channelName().trim() || 'r/EarthPorn';
     // Eingabe aufraeumen: @Handle, r/Subreddit oder eine eingefuegte URL
     const channel = normalizeChannel(input);
 
