@@ -1,20 +1,25 @@
 /**
  * Quelle: Reddit, gelesen ueber den oeffentlichen RSS-Feed eines Subreddits.
  *
- * Warum RSS und nicht die Reddit-API? Die JSON-API (`/r/<sub>/hot.json`)
- * antwortet Besuchern ohne Anmeldung mit 403 und schickt ausserdem keinen
- * CORS-Header - aus einer Web-App ist sie damit nicht erreichbar. Der
- * RSS-Feed funktioniert, muss aber ueber rss2json geholt werden.
+ * Zwei Wege, in dieser Reihenfolge:
  *
- * Folge: pro Subreddit gibt es hoechstens 10 Bilder, weil rss2json ohne
- * API-Schluessel nur 10 Beitraege herausgibt und ein Reddit-Beitrag im Feed
- * genau ein Bild mitbringt.
+ * 1. Der **eigene Vermittler** (Cloudflare Worker, siehe `worker/`). Er holt
+ *    Reddits Feed direkt und liefert bis zu 50 Bilder. Auch Subreddits, die
+ *    rss2json nicht durchreicht, kommen nur ueber diesen Weg an.
+ * 2. Faellt der aus, der alte Weg ueber **rss2json** - dann eben nur 10 Bilder,
+ *    weil der Dienst ohne API-Schluessel nicht mehr Beitraege herausgibt.
+ *
+ * Reddits eigene JSON-API scheidet aus: Sie antwortet Besuchern ohne Anmeldung
+ * mit 403 und schickt keinen CORS-Header, ist aus dem Browser also unerreichbar.
  */
 
 import { ImageItem, SourceAdapter } from '../image-item';
 import { fetchFeedItems } from '../rss2json';
 
-const MAX_IMAGES = 10;
+/** Eigener Vermittler - Quelltext und Anleitung liegen im Ordner `worker/`. */
+const WORKER_URL = 'https://image-wall-reddit.image-wall-reddit.workers.dev/reddit';
+
+const MAX_IMAGES = 50;
 
 /** Grosses, immer gefuelltes Subreddit - nur fuer die Erreichbarkeitspruefung. */
 const PROBE = 'EarthPorn';
@@ -79,6 +84,40 @@ function pickImage(html: string, thumbnail?: string): string | null {
   return null;
 }
 
+/** Weg 1: eigener Vermittler - bis zu 50 Bilder. */
+async function fetchViaWorker(subreddit: string, channel: string): Promise<ImageItem[]> {
+  const url = `${WORKER_URL}?sub=${encodeURIComponent(subreddit)}&limit=${MAX_IMAGES}`;
+  const response = await fetch(url);
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || !Array.isArray(data?.images)) {
+    throw new Error(data?.error || 'Der Reddit-Vermittler antwortet gerade nicht.');
+  }
+
+  return data.images.map((image: { url: string }) => ({ url: image.url, channel }));
+}
+
+/** Weg 2 (Notausgang): der alte Umweg ueber rss2json - hoechstens 10 Bilder. */
+async function fetchViaRss2json(subreddit: string, channel: string): Promise<ImageItem[]> {
+  const items = await fetchFeedItems(`https://www.reddit.com/r/${subreddit}/.rss`, 'Reddit', ATTEMPTS);
+
+  const images: ImageItem[] = [];
+  const seen = new Set<string>();
+
+  for (const item of items) {
+    const html = item.content || item.description || '';
+    const url = pickImage(html, item.thumbnail);
+
+    if (!url || seen.has(url)) continue;
+
+    seen.add(url);
+    images.push({ url, channel });
+    if (images.length >= MAX_IMAGES) break;
+  }
+
+  return images;
+}
+
 export const redditSource: SourceAdapter = {
   id: 'reddit',
   displayName: 'Reddit',
@@ -102,29 +141,21 @@ export const redditSource: SourceAdapter = {
 
   async fetchImages(channel: string): Promise<ImageItem[]> {
     const subreddit = subredditFrom(channel);
-    const items = await fetchFeedItems(`https://www.reddit.com/r/${subreddit}/.rss`, 'Reddit', ATTEMPTS);
 
-    const images: ImageItem[] = [];
-    const seen = new Set<string>();
-
-    for (const item of items) {
-      const html = item.content || item.description || '';
-      const url = pickImage(html, item.thumbnail);
-
-      if (!url || seen.has(url)) continue;
-
-      seen.add(url);
-      images.push({ url, channel });
-      if (images.length >= MAX_IMAGES) break;
+    try {
+      const images = await fetchViaWorker(subreddit, channel);
+      if (images.length > 0) return images;
+    } catch {
+      // Vermittler streikt - unten kommt der Notausgang.
     }
 
-    return images;
+    return fetchViaRss2json(subreddit, channel);
   },
 
   async checkAvailability(): Promise<boolean> {
     try {
-      const items = await fetchFeedItems(`https://www.reddit.com/r/${PROBE}/.rss`, 'Reddit', ATTEMPTS);
-      return items.length > 0;
+      const images = await this.fetchImages(`r/${PROBE}`);
+      return images.length > 0;
     } catch {
       return false;
     }

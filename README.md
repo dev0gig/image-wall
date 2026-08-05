@@ -56,22 +56,24 @@ src/app/sources/
   rss2json.ts          Helfer für api.rss2json.com (von beiden Quellen genutzt)
   index.ts             Verzeichnis aller Quellen
   x/x.source.ts        X über nitter.net
-  reddit/reddit.source.ts   Reddit über den RSS-Feed des Subreddits
+  reddit/reddit.source.ts   Reddit über den eigenen Vermittler (worker/)
 ```
 
 ## Hinweise
 
-- Die Feeds von Nitter und Reddit lassen sich nicht direkt aus dem Browser
-  lesen (kein CORS-Header), deshalb läuft beides über `api.rss2json.com`.
+- Feeds lassen sich nicht direkt aus dem Browser lesen (kein CORS-Header).
+  Reddit läuft deshalb über den eigenen Vermittler, X über `api.rss2json.com`.
   Ist die Nitter-Instanz gerade nicht erreichbar, bleibt das Raster leer –
-  das ist keine Fehlfunktion der App.
+  das ist keine Fehlfunktion der App. Die Fußleiste zeigt für jede Quelle an,
+  ob sie gerade erreichbar ist (Klick darauf prüft sofort neu).
 - **X:** bis zu 20 Bilder pro Konto (ein Beitrag kann mehrere Bilder haben).
-- **Reddit:** bis zu 10 Bilder pro Subreddit. `rss2json` gibt ohne API-Schlüssel
-  nur 10 Beiträge heraus und ein Reddit-Beitrag bringt im Feed genau ein Bild
-  mit. Die eigentliche Reddit-API (`/r/<sub>/hot.json`) fällt aus: sie
-  antwortet Besuchern ohne Anmeldung mit 403 und schickt ebenfalls keinen
-  CORS-Header. Der erste Abruf eines Subreddits scheitert bei Reddit öfter,
-  darum fragt die App bis zu dreimal nach.
+- **Reddit:** bis zu 50 Bilder pro Subreddit über den eigenen Vermittler
+  (Cloudflare Worker, Quelltext in [`worker/`](worker/)). Er holt Reddits Feed
+  direkt; nur über ihn kommen auch Subreddits an, die `rss2json` nicht
+  durchreicht. Ist er nicht erreichbar, fällt die App auf `rss2json` zurück –
+  dann sind es 10 Bilder, weil der Dienst ohne API-Schlüssel nur 10 Beiträge
+  herausgibt. Reddits eigene JSON-API (`/r/<sub>/hot.json`) scheidet aus: 403
+  ohne Anmeldung und kein CORS-Header.
 - Reddit liefert im Feed nur ein kleines Vorschaubild. Da
   `preview.redd.it/<id>.jpg` und `i.redd.it/<id>.jpg` dieselbe Datei sind,
   rechnet die App die Adresse auf das Original um.

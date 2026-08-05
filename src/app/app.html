@@ -345,7 +345,7 @@
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Limits</h4>
             <p>
               To ensure performance and respect API boundaries, the tool fetches a maximum of <strong>20 latest images</strong> per X account.
-              Reddit is limited to <strong>10 images per subreddit</strong>: the free feed service only hands out 10 posts, and a Reddit post carries a single image.
+              Reddit delivers up to <strong>50 images per subreddit</strong> through its own relay (see <code>worker/</code>). Should that relay be unavailable, the app falls back to the free feed service and 10 images.
             </p>
           </section>
 
