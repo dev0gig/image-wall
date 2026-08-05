@@ -21,8 +21,9 @@ GET /reddit?sub=EarthPorn&limit=50
 { "subreddit": "EarthPorn", "count": 50, "images": [{ "url": "https://i.redd.it/…" }] }
 ```
 
-Antwortet auf alle Adressen; nur `sub` zählt. Fehler kommen als HTTP 400
-(kein Subreddit) oder 502 (Reddit hat nicht geliefert).
+Antwortet auf alle Pfade; nur `sub` zählt. Fehler kommen als HTTP 400 (kein
+Subreddit), 403 (Anfrage kam nicht von image-wall, siehe unten) oder 502
+(Reddit hat nicht geliefert).
 
 ## Deployen
 
