@@ -16,6 +16,9 @@ import { fetchFeedItems } from '../rss2json';
 
 const MAX_IMAGES = 10;
 
+/** Grosses, immer gefuelltes Subreddit - nur fuer die Erreichbarkeitspruefung. */
+const PROBE = 'EarthPorn';
+
 /** Reddit liefert den ersten Abruf eines Feeds oft nicht - dann nochmal fragen. */
 const ATTEMPTS = 3;
 
@@ -78,6 +81,7 @@ function pickImage(html: string, thumbnail?: string): string | null {
 
 export const redditSource: SourceAdapter = {
   id: 'reddit',
+  displayName: 'Reddit',
   maxImages: MAX_IMAGES,
 
   accepts: (input: string) => {
@@ -115,6 +119,15 @@ export const redditSource: SourceAdapter = {
     }
 
     return images;
+  },
+
+  async checkAvailability(): Promise<boolean> {
+    try {
+      const items = await fetchFeedItems(`https://www.reddit.com/r/${PROBE}/.rss`, 'Reddit', ATTEMPTS);
+      return items.length > 0;
+    } catch {
+      return false;
+    }
   },
 
   /**

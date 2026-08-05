@@ -44,3 +44,26 @@ export function fetchChannelImages(channel: string): Promise<ImageItem[]> {
 export function toDownloadableUrl(item: ImageItem): string {
   return sourceForChannel(item.channel).toDownloadableUrl(item.url);
 }
+
+/** Erreichbarkeit einer Quelle, wie sie in der Fussleiste steht. */
+export interface SourceStatus {
+  id: string;
+  name: string;
+  /** `null`, solange die Pruefung laeuft. */
+  available: boolean | null;
+}
+
+/**
+ * Fragt jede Quelle einmal zur Probe ab. Die Quellen haengen an fremden
+ * Diensten, die zeitweise ausfallen - hier steht schwarz auf weiss, ob es
+ * gerade an der Seite liegt oder nicht.
+ */
+export function checkAllSources(): Promise<SourceStatus[]> {
+  return Promise.all(
+    SOURCES.map(async source => ({
+      id: source.id,
+      name: source.displayName,
+      available: await source.checkAvailability()
+    }))
+  );
+}

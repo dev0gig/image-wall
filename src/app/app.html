@@ -178,9 +178,29 @@
       <div class="text-[9px] uppercase tracking-widest text-white/40">
         LocalStorage Cache: <span id="cache-status" class="text-white/60">{{ images().length > 0 ? 'Active' : 'Inactive' }}</span>
       </div>
-      <div class="hidden lg:block text-[9px] uppercase tracking-widest text-white/40">
-        Format: Responsive Masonry / Variable Height
-      </div>
+      <button
+        (click)="refreshSourceStatus()"
+        [disabled]="isCheckingSources()"
+        title="Sources reachable? Click to check again"
+        class="text-[9px] uppercase tracking-widest text-white/40 hover:text-white/70 transition-colors flex items-center gap-2 disabled:cursor-wait"
+      >
+        <span>Sources:</span>
+        @if (isCheckingSources() && sourceStatus().length === 0) {
+          <span class="text-white/60">Checking…</span>
+        } @else {
+          @for (source of sourceStatus(); track source.id; let last = $last) {
+            <span>
+              {{ source.name }}
+              <span [class]="source.available ? 'text-emerald-400' : 'text-red-400'">
+                {{ source.available ? 'Online' : 'Offline' }}
+              </span>
+              @if (!last) {
+                <span class="text-white/20">·</span>
+              }
+            </span>
+          }
+        }
+      </button>
     </footer>
   </main>
 

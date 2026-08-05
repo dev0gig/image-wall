@@ -12,6 +12,11 @@ import { fetchFeedItems } from '../rss2json';
 const NITTER = 'https://nitter.net';
 const MAX_IMAGES = 20;
 
+/** Bekanntes, gut gefuelltes Konto - nur fuer die Erreichbarkeitspruefung. */
+const PROBE = 'ArchDigest';
+
+const SOURCE_NAME = `Der X-Spiegel ${new URL(NITTER).host}`;
+
 /** Entfernt @, Profil-URLs und angehaengte Pfade wie /media. */
 function handleFrom(input: string): string {
   let handle = input.trim();
@@ -23,6 +28,7 @@ function handleFrom(input: string): string {
 
 export const xSource: SourceAdapter = {
   id: 'x',
+  displayName: 'X',
   maxImages: MAX_IMAGES,
 
   // X ist die Standardquelle: alles, was nicht nach einer anderen Quelle
@@ -35,7 +41,7 @@ export const xSource: SourceAdapter = {
   label: (channel: string) => `@${channel}`,
 
   async fetchImages(channel: string): Promise<ImageItem[]> {
-    const items = await fetchFeedItems(`${NITTER}/${channel}/rss`, `Der X-Spiegel ${new URL(NITTER).host}`);
+    const items = await fetchFeedItems(`${NITTER}/${channel}/rss`, SOURCE_NAME);
     const images: ImageItem[] = [];
 
     for (const item of items) {
@@ -51,6 +57,15 @@ export const xSource: SourceAdapter = {
     }
 
     return images;
+  },
+
+  async checkAvailability(): Promise<boolean> {
+    try {
+      const items = await fetchFeedItems(`${NITTER}/${PROBE}/rss`, SOURCE_NAME);
+      return items.length > 0;
+    } catch {
+      return false;
+    }
   },
 
   /**

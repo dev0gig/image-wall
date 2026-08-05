@@ -20,6 +20,9 @@ export interface ImageItem {
 export interface SourceAdapter {
   readonly id: SourceId;
 
+  /** Name der Quelle in der Oberflaeche, z. B. in der Fussleiste. */
+  readonly displayName: string;
+
   /** Hoechstzahl der Bilder, die pro Kanal geholt werden. */
   readonly maxImages: number;
 
@@ -36,6 +39,12 @@ export interface SourceAdapter {
   label(channel: string): string;
 
   fetchImages(channel: string): Promise<ImageItem[]>;
+
+  /**
+   * Liefert diese Quelle gerade ueberhaupt etwas? Wird fuer die Anzeige in der
+   * Fussleiste einmal mit einem bekannten Kanal zur Probe abgefragt.
+   */
+  checkAvailability(): Promise<boolean>;
 
   /**
    * Bild-URL -> URL, die sich per `fetch()` laden laesst.

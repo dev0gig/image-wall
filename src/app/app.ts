@@ -5,10 +5,12 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import {
   channelLabel,
+  checkAllSources,
   fetchChannelImages,
   normalizeChannel,
   toDownloadableUrl,
-  type ImageItem
+  type ImageItem,
+  type SourceStatus
 } from './sources';
 
 export type { ImageItem } from './sources';
@@ -46,6 +48,13 @@ export class App {
   showClearConfirm = signal(false);
   isDownloadingZip = signal(false);
   showHelp = signal(false);
+
+  // Erreichbarkeit der Quellen (Fussleiste)
+  sourceStatus = signal<SourceStatus[]>([]);
+  isCheckingSources = signal(false);
+  private static readonly STATUS_KEY = 'x_source_status';
+  /** So lange gilt ein Pruefergebnis, danach wird neu gefragt (10 Minuten). */
+  private static readonly STATUS_MAX_AGE = 10 * 60 * 1000;
   
   private platformId = inject(PLATFORM_ID);
   
@@ -71,9 +80,47 @@ export class App {
           this.favorites.set(JSON.parse(storedFavs));
         } catch (e) {}
       }
+
+      this.loadSourceStatus();
     }
   }
-  
+
+  /**
+   * Erreichbarkeit der Quellen. Das Ergebnis haelt 10 Minuten, damit nicht
+   * jeder Seitenaufruf zwei zusaetzliche Abfragen ausloest.
+   */
+  private loadSourceStatus() {
+    const stored = localStorage.getItem(App.STATUS_KEY);
+    if (stored) {
+      try {
+        const { time, results } = JSON.parse(stored);
+        if (Date.now() - time < App.STATUS_MAX_AGE) {
+          this.sourceStatus.set(results);
+          return;
+        }
+      } catch {
+        // Unbrauchbarer Eintrag - dann wird eben neu geprueft.
+      }
+    }
+    this.refreshSourceStatus();
+  }
+
+  /** Jetzt nachsehen - auch von Hand über die Fußleiste auslösbar. */
+  async refreshSourceStatus() {
+    if (this.isCheckingSources()) return;
+
+    this.isCheckingSources.set(true);
+    try {
+      const results = await checkAllSources();
+      this.sourceStatus.set(results);
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem(App.STATUS_KEY, JSON.stringify({ time: Date.now(), results }));
+      }
+    } finally {
+      this.isCheckingSources.set(false);
+    }
+  }
+
   /** Anzeigetext eines Kanals, z. B. `@ArchDigest` oder `r/EarthPorn`. */
   channelLabel(channel: string): string {
     return channelLabel(channel);
