@@ -8,31 +8,32 @@
     </div>
     
     <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-      <!-- View All Button -->
-      <button 
-        (click)="viewAll()"
-        [class.bg-white]="viewingAll()"
-        [class.text-black]="viewingAll()"
-        [class.bg-neutral-900]="!viewingAll()"
-        [class.text-white]="!viewingAll()"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 hover:text-black transition-colors w-full text-left"
-      >
-        <mat-icon class="text-lg">grid_view</mat-icon>
-        <span>Wall View</span>
-      </button>
+      <!-- View All / Favorites -->
+      <div class="flex items-stretch gap-1.5 -mx-2">
+        <button
+          (click)="viewAll()"
+          [class.bg-white]="viewingAll()"
+          [class.text-black]="viewingAll()"
+          [class.bg-neutral-900]="!viewingAll()"
+          [class.text-white]="!viewingAll()"
+          class="flex-1 min-w-0 flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-neutral-200 hover:text-black transition-colors"
+        >
+          <mat-icon class="shrink-0 w-[18px]! h-[18px]! text-[18px]! leading-none">grid_view</mat-icon>
+          <span class="truncate">Wall View</span>
+        </button>
 
-      <!-- Favorites Button -->
-      <button 
-        (click)="viewFavorites()"
-        [class.bg-white]="viewingFavorites()"
-        [class.text-black]="viewingFavorites()"
-        [class.bg-neutral-900]="!viewingFavorites()"
-        [class.text-white]="!viewingFavorites()"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 hover:text-black transition-colors w-full text-left"
-      >
-        <mat-icon class="text-lg">favorite</mat-icon>
-        <span>Favorites</span>
-      </button>
+        <button
+          (click)="viewFavorites()"
+          [class.bg-white]="viewingFavorites()"
+          [class.text-black]="viewingFavorites()"
+          [class.bg-neutral-900]="!viewingFavorites()"
+          [class.text-white]="!viewingFavorites()"
+          class="flex-1 min-w-0 flex items-center justify-center gap-2 px-2 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-neutral-200 hover:text-black transition-colors"
+        >
+          <mat-icon class="shrink-0 w-[18px]! h-[18px]! text-[18px]! leading-none">favorite</mat-icon>
+          <span class="truncate">Favorites</span>
+        </button>
+      </div>
 
       <div>
         <div class="text-[9px] uppercase tracking-widest opacity-40 mb-3 px-2">Saved Accounts</div>
