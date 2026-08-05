@@ -98,7 +98,7 @@ export const redditSource: SourceAdapter = {
 
   async fetchImages(channel: string): Promise<ImageItem[]> {
     const subreddit = subredditFrom(channel);
-    const items = await fetchFeedItems(`https://www.reddit.com/r/${subreddit}/.rss`, ATTEMPTS);
+    const items = await fetchFeedItems(`https://www.reddit.com/r/${subreddit}/.rss`, 'Reddit', ATTEMPTS);
 
     const images: ImageItem[] = [];
     const seen = new Set<string>();

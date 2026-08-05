@@ -25,27 +25,51 @@ function wait(ms: number): Promise<void> {
 }
 
 /**
+ * Aus der englischen Meldung des Dienstes einen Satz machen, der erklaert,
+ * was los ist - vor allem: ob es am Nutzer liegt oder nicht.
+ */
+function explain(message: string, sourceName: string): string {
+  if (/short period|api key/i.test(message)) {
+    return 'Der Feed-Dienst bremst gerade (zu viele neue Quellen in kurzer Zeit). In ein paar Minuten nochmal versuchen.';
+  }
+  if (/valid RSS feed|could not be parsed/i.test(message)) {
+    return `${sourceName} liefert gerade keinen brauchbaren Feed. Das liegt nicht an dir – bitte später nochmal versuchen.`;
+  }
+  if (/Cannot download this RSS feed/i.test(message)) {
+    return `${sourceName} hat den Feed gerade nicht herausgegeben. Bitte nochmal versuchen oder den Namen prüfen.`;
+  }
+  return message;
+}
+
+/**
  * Holt die Eintraege eines Feeds.
  *
  * `attempts` > 1 lohnt sich bei Reddit: der erste Abruf eines noch nicht
  * zwischengespeicherten Feeds schlaegt dort oft fehl, der naechste klappt.
  */
-export async function fetchFeedItems(rssUrl: string, attempts = 1): Promise<FeedItem[]> {
+export async function fetchFeedItems(
+  rssUrl: string,
+  sourceName: string,
+  attempts = 1
+): Promise<FeedItem[]> {
   const apiUrl = `${API}?rss_url=${encodeURIComponent(rssUrl)}`;
   let lastError = 'Fehler beim Abrufen des Feeds.';
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const response = await fetch(apiUrl);
-      if (!response.ok) {
-        lastError = 'Fehler beim Abrufen des Feeds.';
-      } else {
-        const data = await response.json();
-        if (data.status === 'ok') {
-          return (data.items ?? []) as FeedItem[];
-        }
-        lastError = data.message || 'Kanal nicht gefunden.';
+
+      // Auch bei einem Fehler-Status (z. B. 429, wenn der Dienst bremst)
+      // steht die Begruendung im Rumpf der Antwort - die wollen wir zeigen.
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.status === 'ok') {
+        return (data.items ?? []) as FeedItem[];
       }
+
+      lastError = data?.message
+        ? explain(data.message, sourceName)
+        : 'Fehler beim Abrufen des Feeds.';
     } catch {
       lastError = 'Fehler beim Abrufen des Feeds.';
     }

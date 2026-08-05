@@ -35,7 +35,7 @@ export const xSource: SourceAdapter = {
   label: (channel: string) => `@${channel}`,
 
   async fetchImages(channel: string): Promise<ImageItem[]> {
-    const items = await fetchFeedItems(`${NITTER}/${channel}/rss`);
+    const items = await fetchFeedItems(`${NITTER}/${channel}/rss`, `Der X-Spiegel ${new URL(NITTER).host}`);
     const images: ImageItem[] = [];
 
     for (const item of items) {
