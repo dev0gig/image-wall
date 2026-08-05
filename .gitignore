@@ -1,0 +1,24 @@
+# Abhängigkeiten
+/node_modules
+
+# Build-Ergebnisse
+/dist
+/.angular
+/tmp
+/out-tsc
+
+# Umgebung / Geheimnisse
+.env
+.env.local
+*.local
+
+# Editor / System
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

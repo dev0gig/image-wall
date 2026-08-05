@@ -355,6 +355,21 @@ export class App {
     }
   }
 
+  /**
+   * Nitter-Bild-URLs (https://nitter.net/pic/media%2Fabc.jpg) zeigen auf Twitter/X.
+   * Nitter selbst erlaubt kein Herunterladen per JavaScript (kein CORS-Header),
+   * pbs.twimg.com dagegen schon. Darum bauen wir die Original-URL zurueck.
+   */
+  toDownloadableUrl(url: string): string {
+    const marker = '/pic/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return url;
+
+    const raw = decodeURIComponent(url.substring(idx + marker.length));
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    return `https://pbs.twimg.com/${raw.replace(/^\/+/, '')}`;
+  }
+
   async downloadFavoritesZip() {
     const favs = this.favorites();
     if (favs.length === 0) return;
@@ -366,7 +381,7 @@ export class App {
     for (let i = 0; i < favs.length; i++) {
       const fav = favs[i];
       try {
-        const response = await fetch(`/api/image-proxy?url=${encodeURIComponent(fav.url)}`);
+        const response = await fetch(this.toDownloadableUrl(fav.url));
         
         if (response.ok) {
           const blob = await response.blob();

@@ -1,5 +1,5 @@
 {
-  "name": "ai-studio-angular-app",
+  "name": "image-wall",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -8,8 +8,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint",
-    "serve:ssr:app": "node dist/app/server/server.mjs"
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
@@ -20,13 +19,10 @@
     "@angular/forms": "^21.0.0",
     "@angular/material": "^21.0.0",
     "@angular/platform-browser": "^21.0.0",
-    "@angular/platform-server": "^21.0.0",
     "@angular/router": "^21.0.0",
-    "@angular/ssr": "^21.0.0",
     "@google/genai": "^2.4.0",
     "@types/file-saver": "^2.0.7",
     "@types/jszip": "^3.4.1",
-    "express": "^5.1.0",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "motion": "^12.23.24",
@@ -38,7 +34,6 @@
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",
     "@tailwindcss/postcss": "^4.1.12",
-    "@types/express": "^5.0.1",
     "@types/node": "^20.17.19",
     "angular-eslint": "21.1.0",
     "cross-env": "^10.1.0",
