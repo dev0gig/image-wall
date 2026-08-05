@@ -1,0 +1,401 @@
+<div class="flex h-screen w-full bg-[#0a0a0a] text-white font-sans overflow-hidden">
+  
+  <!-- Sidebar -->
+  <aside class="w-64 border-r border-white/10 flex flex-col shrink-0 bg-[#0f0f0f]">
+    <div class="h-28 flex flex-col justify-center px-8 border-b border-white/10 shrink-0">
+      <span class="text-[10px] tracking-[0.3em] uppercase opacity-50 mb-1">Utility Interface</span>
+      <h1 class="text-xl font-light tracking-tighter italic font-serif text-neutral-100">Visual Archive</h1>
+    </div>
+    
+    <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+      <!-- View All Button -->
+      <button 
+        (click)="viewAll()"
+        [class.bg-white]="viewingAll()"
+        [class.text-black]="viewingAll()"
+        [class.bg-neutral-900]="!viewingAll()"
+        [class.text-white]="!viewingAll()"
+        class="flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 hover:text-black transition-colors w-full text-left"
+      >
+        <mat-icon class="text-lg">grid_view</mat-icon>
+        <span>Wall View</span>
+      </button>
+
+      <!-- Favorites Button -->
+      <button 
+        (click)="viewFavorites()"
+        [class.bg-white]="viewingFavorites()"
+        [class.text-black]="viewingFavorites()"
+        [class.bg-neutral-900]="!viewingFavorites()"
+        [class.text-white]="!viewingFavorites()"
+        class="flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 hover:text-black transition-colors w-full text-left"
+      >
+        <mat-icon class="text-lg">favorite</mat-icon>
+        <span>Favorites</span>
+      </button>
+
+      <div>
+        <div class="text-[9px] uppercase tracking-widest opacity-40 mb-3 px-2">Saved Accounts</div>
+        <div class="flex flex-col gap-1">
+          @for (channel of savedChannels(); track channel) {
+            <div class="flex items-center justify-between group rounded-lg hover:bg-white/5 transition-colors">
+              <button 
+                (click)="loadChannel(channel)"
+                class="flex-1 text-left px-3 py-2 text-sm text-neutral-300 group-hover:text-white transition-colors truncate"
+              >
+                @{{ channel }}
+              </button>
+              <button 
+                (click)="removeChannel(channel, $event)"
+                class="opacity-0 group-hover:opacity-100 p-2 text-neutral-500 hover:text-red-400 transition-all"
+                title="Remove"
+              >
+                <mat-icon class="text-sm scale-75">close</mat-icon>
+              </button>
+            </div>
+          }
+          @if (savedChannels().length === 0) {
+            <p class="text-xs text-neutral-600 italic px-2">No accounts saved yet.</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Footer Settings -->
+    <div class="mt-auto border-t border-white/10 p-4 shrink-0 flex flex-col gap-2">
+      <div class="text-[9px] uppercase tracking-widest opacity-40 px-1 flex justify-between items-center">
+        <span>Data Backup</span>
+        <button (click)="showHelp.set(true)" class="hover:text-white transition-colors text-white/60" title="How to use">
+          <mat-icon class="text-[14px]">help_outline</mat-icon>
+        </button>
+      </div>
+      <div class="flex gap-2">
+        <button 
+          (click)="triggerImport()"
+          class="flex-1 bg-neutral-900 text-white p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-800 transition-colors flex justify-center items-center gap-1 border border-white/5"
+          title="Import Channels"
+        >
+          <mat-icon class="text-[14px]">file_upload</mat-icon> Import
+        </button>
+        <button 
+          (click)="exportChannels()"
+          class="flex-1 bg-neutral-900 text-white p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-800 transition-colors flex justify-center items-center gap-1 border border-white/5"
+          title="Export Channels"
+        >
+          <mat-icon class="text-[14px]">file_download</mat-icon> Export
+        </button>
+        <input id="import-input" type="file" accept=".json" class="hidden" (change)="handleImport($event)">
+      </div>
+
+      <!-- Clear Cache -->
+      @if (!showClearConfirm()) {
+        <button 
+          (click)="showClearConfirm.set(true)"
+          class="w-full bg-red-950/30 text-red-400 p-2 rounded-md text-[10px] font-bold uppercase tracking-widest hover:bg-red-900/50 transition-colors flex justify-center items-center gap-2 mt-2 border border-red-900/30"
+        >
+          <mat-icon class="text-[14px]">delete_sweep</mat-icon> Reset All Data
+        </button>
+      } @else {
+        <div class="bg-red-950/40 border border-red-900/50 rounded-md p-3 flex flex-col gap-2 mt-2 shadow-inner">
+          <p class="text-[9px] leading-relaxed text-red-200">
+            <strong>CAUTION:</strong> This permanently deletes all cached images, saved channels, and your favorites! (Export your channels first).
+          </p>
+          <div class="flex gap-2 mt-1">
+            <button 
+              (click)="clearCache()"
+              class="flex-1 bg-red-600 text-white py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 transition-colors"
+            >
+              Delete
+            </button>
+            <button 
+              (click)="showClearConfirm.set(false)"
+              class="flex-1 bg-neutral-800 text-white py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-widest hover:bg-neutral-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col overflow-hidden relative">
+    <header class="h-28 flex items-center justify-between px-10 border-b border-white/10 shrink-0 bg-[#0a0a0a] z-10">
+      <div class="flex flex-col">
+        <span class="text-[10px] tracking-[0.3em] uppercase opacity-50 mb-1">
+          @if (viewingFavorites()) {
+            Curated
+          } @else if (viewingAll()) {
+            Global Collection
+          } @else if (channelName()) {
+            Current Source
+          } @else {
+            Select Source
+          }
+        </span>
+        <h2 class="text-2xl font-light tracking-tighter italic font-serif text-neutral-100">
+          @if (viewingFavorites()) {
+            Favorites
+          } @else if (viewingAll()) {
+            All Saved Media
+          } @else if (channelName()) {
+            @{{ channelName() }}
+          } @else {
+            Awaiting Input
+          }
+        </h2>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        @if (viewingFavorites()) {
+          <div class="flex gap-2 mt-4">
+            <button 
+              (click)="downloadFavoritesZip()"
+              [disabled]="isDownloadingZip() || favorites().length === 0"
+              class="bg-white text-black px-6 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+            >
+              @if (isDownloadingZip()) {
+                <mat-icon class="text-[14px] animate-spin">refresh</mat-icon> Packing...
+              } @else {
+                <mat-icon class="text-[14px]">archive</mat-icon> Download ZIP
+              }
+            </button>
+          </div>
+        } @else {
+          <div class="relative flex flex-col">
+            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source Handle</label>
+            <input 
+              id="channel-input"
+              type="text" 
+              [value]="channelName()"
+              (input)="updateChannelName($event)"
+              (keyup.enter)="loadImages()"
+              placeholder="ArchDigest"
+              class="bg-transparent border-b border-white/30 px-0 py-1 text-sm focus:outline-none focus:border-white transition-colors w-48 placeholder-white/20"
+            />
+          </div>
+          
+          <div class="flex gap-2 mt-4">
+            <button 
+              (click)="saveCurrentChannel()"
+              [disabled]="!channelName().trim()"
+              class="bg-neutral-900 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-800 border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title="Save Account"
+            >
+              <mat-icon class="text-[14px]">bookmark_add</mat-icon>
+            </button>
+            <button 
+              id="load-button"
+              (click)="loadImages()"
+              [disabled]="isLoading() || !channelName().trim()"
+              class="bg-white text-black px-6 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+              @if (isLoading()) {
+                Laden...
+              } @else {
+                Retrieve Media
+              }
+            </button>
+          </div>
+        }
+      </div>
+    </header>
+
+    @if (error()) {
+      <div class="px-10 py-4 shrink-0 bg-red-950/20 border-b border-red-900/30">
+        <p id="error-message" class="text-red-400 text-sm font-medium">{{ error() }}</p>
+      </div>
+    }
+
+    <!-- Masonry Grid -->
+    <div class="flex-grow p-6 overflow-y-auto">
+      @if (images().length > 0) {
+        <div id="image-grid" class="columns-2 md:columns-3 lg:columns-4 gap-4 w-full">
+          @for (item of images(); track item.url; let i = $index) {
+            <div (click)="openCarousel(i)" class="break-inside-avoid bg-neutral-900 rounded-xl overflow-hidden relative group cursor-pointer shadow-sm mb-4 inline-block w-full">
+              <div class="absolute inset-0 bg-neutral-800 opacity-0 group-hover:opacity-20 transition-opacity z-10 pointer-events-none"></div>
+              
+              <!-- Source Badge -->
+              @if (viewingAll() || viewingFavorites()) {
+                <div class="absolute top-3 left-3 z-20 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[9px] uppercase tracking-wider text-white/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                  @{{ item.channel }}
+                </div>
+              }
+
+              <!-- Favorite Button -->
+              <button 
+                (click)="toggleFavorite(item, $event)"
+                class="absolute top-3 right-3 z-30 p-2 rounded-full backdrop-blur-md transition-all flex items-center justify-center shadow-sm"
+                [class.bg-black/60]="!isFavorite(item.url)"
+                [class.bg-white]="isFavorite(item.url)"
+                [class.text-white]="!isFavorite(item.url)"
+                [class.text-red-500]="isFavorite(item.url)"
+                [class.opacity-0]="!isFavorite(item.url)"
+                [class.group-hover:opacity-100]="!isFavorite(item.url)"
+              >
+                <mat-icon class="text-sm scale-[0.8] leading-none h-4 w-4 flex items-center justify-center">
+                  {{ isFavorite(item.url) ? 'favorite' : 'favorite_border' }}
+                </mat-icon>
+              </button>
+
+              <!-- Counter Badge -->
+              <div class="absolute bottom-3 right-3 z-20 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[9px] font-bold tracking-widest text-white/80 pointer-events-none">
+                {{ i + 1 }} / {{ images().length }}
+              </div>
+
+              <img 
+                [src]="item.url" 
+                alt="Grid image" 
+                referrerpolicy="no-referrer"
+                class="w-full h-auto block object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-500"
+                loading="lazy"
+              />
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Skeleton Masonry -->
+        <div id="image-grid" class="columns-2 md:columns-3 lg:columns-4 gap-4 w-full opacity-50">
+          @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+            <div class="break-inside-avoid bg-neutral-900 rounded-xl overflow-hidden relative mb-4 inline-block w-full" [style.height.px]="150 + (i % 3) * 80">
+              <div class="w-full h-full bg-gradient-to-tr from-neutral-800 to-neutral-700"></div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <footer class="h-12 border-t border-white/10 px-10 flex items-center justify-between shrink-0 bg-[#0a0a0a]">
+      <div class="text-[9px] uppercase tracking-widest text-white/40">
+        LocalStorage Cache: <span id="cache-status" class="text-white/60">{{ images().length > 0 ? 'Active' : 'Inactive' }}</span>
+      </div>
+      <div class="text-[9px] uppercase tracking-widest text-white/40">
+        Format: Responsive Masonry / Variable Height
+      </div>
+    </footer>
+  </main>
+
+  <!-- Lightbox / Carousel (Z-Index is high enough to cover everything) -->
+  @if (carouselOpen()) {
+    <div 
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+      (click)="closeCarousel()"
+      (touchstart)="onTouchStart($event)"
+      (touchend)="onTouchEnd($event)"
+    >
+      <!-- Close Button -->
+      <button 
+        class="absolute top-6 right-6 text-white/60 hover:text-white transition-colors p-2 z-50"
+        (click)="closeCarousel()"
+      >
+        <mat-icon class="text-3xl">close</mat-icon>
+      </button>
+
+      <!-- Prev Button -->
+      <button 
+        class="absolute left-4 md:left-10 text-white/60 hover:text-white transition-colors p-4 hidden md:block z-50"
+        (click)="prevImage($event)"
+      >
+        <mat-icon class="text-5xl font-light">chevron_left</mat-icon>
+      </button>
+
+      <!-- Main Image -->
+      <div class="relative max-w-[90vw] max-h-[85vh] flex flex-col items-center" (click)="$event.stopPropagation()">
+        <img 
+          [src]="images()[carouselIndex()].url" 
+          alt="Enlarged gallery image" 
+          referrerpolicy="no-referrer"
+          class="max-w-full max-h-[80vh] object-contain rounded-sm shadow-2xl"
+        />
+        <!-- Image Info & Counter -->
+        <div class="mt-4 text-center flex flex-col items-center gap-2">
+          <div class="flex items-center gap-3">
+            <div class="text-white/80 text-xs tracking-wider uppercase bg-white/10 px-3 py-1 rounded-full">
+              @{{ images()[carouselIndex()].channel }}
+            </div>
+            <button 
+              (click)="toggleFavorite(images()[carouselIndex()], $event)"
+              class="flex items-center justify-center p-2 rounded-full transition-colors"
+              [class.bg-white]="isFavorite(images()[carouselIndex()].url)"
+              [class.text-red-500]="isFavorite(images()[carouselIndex()].url)"
+              [class.bg-white/10]="!isFavorite(images()[carouselIndex()].url)"
+              [class.text-white]="!isFavorite(images()[carouselIndex()].url)"
+              [class.hover:bg-white/20]="!isFavorite(images()[carouselIndex()].url)"
+            >
+              <mat-icon class="text-[18px] leading-none h-5 w-5 flex items-center justify-center">
+                {{ isFavorite(images()[carouselIndex()].url) ? 'favorite' : 'favorite_border' }}
+              </mat-icon>
+            </button>
+          </div>
+          <div class="text-white/40 text-[10px] tracking-widest uppercase mt-1">
+            {{ carouselIndex() + 1 }} / {{ images().length }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Button -->
+      <button 
+        class="absolute right-4 md:right-10 text-white/60 hover:text-white transition-colors p-4 hidden md:block z-50"
+        (click)="nextImage($event)"
+      >
+        <mat-icon class="text-5xl font-light">chevron_right</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Help Modal -->
+  @if (showHelp()) {
+    <div 
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      (click)="showHelp.set(false)"
+    >
+      <div 
+        class="bg-[#0f0f0f] border border-white/10 rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl relative"
+        (click)="$event.stopPropagation()"
+      >
+        <button 
+          class="absolute top-6 right-6 text-white/40 hover:text-white transition-colors"
+          (click)="showHelp.set(false)"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+        
+        <h3 class="text-2xl font-light italic font-serif mb-6 text-neutral-100">Visual Archive Guide</h3>
+        
+        <div class="space-y-6 text-sm text-neutral-400 leading-relaxed">
+          <section>
+            <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Supported Sources</h4>
+            <p>
+              Currently, this tool supports <strong>X (Twitter)</strong> accounts. 
+              You can simply type the handle (e.g. <code>ArchDigest</code>), use an <code>@</code> prefix (e.g. <code>@ArchDigest</code>), or paste the full X profile URL.
+            </p>
+          </section>
+
+          <section>
+            <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Limits</h4>
+            <p>
+              To ensure performance and respect API boundaries, the tool fetches a maximum of <strong>20 latest images</strong> per channel/account.
+            </p>
+          </section>
+          
+          <section>
+            <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Favorites & Downloads</h4>
+            <p>
+              Click the heart icon on any image to save it to your Favorites. 
+              In the Favorites view, you can download all your curated images as a single <strong>ZIP archive</strong>.
+            </p>
+          </section>
+
+          <section>
+            <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Import & Export</h4>
+            <p>
+              Use the Backup options to export your saved channel list to a JSON file. 
+              You can import this file later or on another device to restore your channel collection. Note: This only backs up the channel handles, not the images themselves.
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+  }
+</div>

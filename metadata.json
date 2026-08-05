@@ -1,0 +1,6 @@
+{
+  "name": "Nitter Image Grid",
+  "description": "A single-page web app for testing an image-oriented grid using X images via Nitter.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
