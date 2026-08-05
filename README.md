@@ -81,7 +81,7 @@ src/app/sources/
   weg. Kein Schlüssel, keine Anmeldung, kein Ratenlimit, das sich alle teilen
   (Bluesky zählt pro IP, also pro Besucher). Videos werden übersprungen.
 - **X:** bis zu 20 Bilder pro Konto (ein Beitrag kann mehrere Bilder haben).
-- **Reddit:** bis zu 50 Bilder pro Subreddit über den eigenen Vermittler
+- **Reddit:** bis zu 100 Bilder pro Subreddit über den eigenen Vermittler
   (Cloudflare Worker, Quelltext in [`worker/`](worker/)). Er holt Reddits Feed
   direkt; nur über ihn kommen auch Subreddits an, die `rss2json` nicht
   durchreicht. Ist er nicht erreichbar, fällt die App auf `rss2json` zurück –

@@ -4,7 +4,7 @@
  * Zwei Wege, in dieser Reihenfolge:
  *
  * 1. Der **eigene Vermittler** (Cloudflare Worker, siehe `worker/`). Er holt
- *    Reddits Feed direkt und liefert bis zu 50 Bilder. Auch Subreddits, die
+ *    Reddits Feed direkt und liefert bis zu 100 Bilder. Auch Subreddits, die
  *    rss2json nicht durchreicht, kommen nur ueber diesen Weg an.
  * 2. Faellt der aus, der alte Weg ueber **rss2json** - dann eben nur 10 Bilder,
  *    weil der Dienst ohne API-Schluessel nicht mehr Beitraege herausgibt.
@@ -19,7 +19,7 @@ import { fetchFeedItems } from '../rss2json';
 /** Eigener Vermittler - Quelltext und Anleitung liegen im Ordner `worker/`. */
 const WORKER_URL = 'https://image-wall-reddit.image-wall-reddit.workers.dev/reddit';
 
-const MAX_IMAGES = 50;
+const MAX_IMAGES = 100;
 
 /** Grosses, immer gefuelltes Subreddit - nur fuer die Erreichbarkeitspruefung. */
 const PROBE = 'EarthPorn';
@@ -84,7 +84,7 @@ function pickImage(html: string, thumbnail?: string): string | null {
   return null;
 }
 
-/** Weg 1: eigener Vermittler - bis zu 50 Bilder. */
+/** Weg 1: eigener Vermittler - bis zu 100 Bilder. */
 async function fetchViaWorker(subreddit: string, channel: string): Promise<ImageItem[]> {
   const url = `${WORKER_URL}?sub=${encodeURIComponent(subreddit)}&limit=${MAX_IMAGES}`;
   const response = await fetch(url);

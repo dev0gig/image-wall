@@ -6,7 +6,8 @@ Ein winziges Programm, das zwischen der Seite und Reddit sitzt.
 über den Gratis-Dienst `rss2json`, und der gibt nur **10 Beiträge** pro Feed
 heraus — daher die 10 Bilder pro Subreddit. Reddits eigener Feed liefert bis zu
 100. Dieser Vermittler holt ihn selbst und reicht nur noch die Bild-Adressen
-weiter: **50 statt 10 Bilder**, ohne Anmeldung und ohne Schlüssel.
+weiter: **bis zu 100 statt 10 Bilder**, ohne Anmeldung und ohne Schlüssel.
+Die Seite fragt 100 an; ohne `limit` sind es 50.
 
 Nebenbei rechnet er kleine Vorschaubilder auf die Originalgröße um und wirft
 Doppelte raus.
