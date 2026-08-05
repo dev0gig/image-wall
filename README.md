@@ -21,6 +21,22 @@ beginnt mit `r/`. Passt eine Eingabe zu keiner Quelle, sagt die App das.
 Nitter-Spiegel lesbar, und davon funktioniert keiner mehr – die Quelle ist
 deshalb komplett entfernt.
 
+## Tempo
+
+* **Jede geladene Quelle bleibt im Browser gemerkt** (`iw_cache_<kanal>` in
+  localStorage, siehe `src/app/image-cache.ts`). Beim nächsten Öffnen sind die
+  Bilder sofort da; frische werden im Hintergrund geholt und ersetzen sie
+  still. Wurde eine Quelle vor weniger als 5 Minuten geholt, wird sie gar nicht
+  erst gefragt. Gespeichert werden nur Adressen – vier Quellen mit 365 Bildern
+  sind 116 KB, 20 Quellen also rund 600 KB (Grenze des Browsers: ~5 MB).
+  Das funktioniert nur, weil `i.redd.it`, `cdn.bsky.app` und die
+  Mastodon-Server unsignierte Adressen ohne Ablaufdatum liefern.
+* **In der Wall View laufen 5 Quellen gleichzeitig** statt eine nach der
+  anderen, und jede erscheint, sobald sie da ist; die Fußleiste zeigt den
+  Fortschritt. Gemessen mit vier Konten: erstes Bild nach 289 ms, alles fertig
+  nach 607 ms. Vorher erschien überhaupt nichts, bis die letzte Quelle
+  geantwortet hatte (rund 420 ms je Konto, bei 20 Konten also ~8 s).
+
 ## Bildgrößen
 
 * **Kleine Bilder fliegen raus.** Alles, dessen längste Kante unter 400 px

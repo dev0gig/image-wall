@@ -3,6 +3,7 @@ import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import * as cache from './image-cache';
 import {
   INPUT_HELP,
   MIN_EDGE,
@@ -69,6 +70,16 @@ export class App {
 
   /** URL des Bildes, das gerade einzeln heruntergeladen wird. */
   downloadingUrl = signal<string | null>(null);
+
+  /** Wie viele Quellen sind beim Sammeln schon durch? `null` = laeuft nicht. */
+  loadProgress = signal<{ done: number; total: number } | null>(null);
+
+  /**
+   * So viele Quellen werden gleichzeitig abgefragt. Nacheinander dauerte es
+   * bei 20 Konten rund acht Sekunden (gemessen: gut 400 ms je Konto); alle
+   * auf einmal waere gegenueber den fremden Servern unhoeflich.
+   */
+  private static readonly PARALLEL = 5;
 
   // Erreichbarkeit der Quellen (Fussleiste)
   sourceStatus = signal<SourceStatus[]>([]);
@@ -186,6 +197,8 @@ export class App {
     this.savedChannels.set(updated);
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('x_saved_channels', JSON.stringify(updated));
+      // Bilder einer entfernten Quelle brauchen keinen Platz mehr.
+      cache.pruneCache(updated);
     }
   }
 
@@ -202,33 +215,96 @@ export class App {
     this.viewingAll.set(true);
     this.viewingFavorites.set(false);
     this.channelName.set('');
-    this.isLoading.set(true);
     this.error.set('');
-    this.images.set([]);
-    
+
     const allChannels = this.savedChannels();
     if (allChannels.length === 0) {
+      this.images.set([]);
       this.error.set('Keine gespeicherten Accounts vorhanden.');
       this.isLoading.set(false);
       return;
     }
 
-    let allImages: ImageItem[] = [];
-    
-    for (const channel of allChannels) {
-       try {
-         const imgs = await fetchChannelImages(channel);
-         allImages = [...allImages, ...imgs];
-       } catch (e) {
-         console.error(`Error loading ${channel}`, e);
-       }
+    // 1. Sofort zeigen, was vom letzten Mal noch da ist.
+    const bekannt = allChannels.flatMap(channel => cache.readChannel(channel)?.images ?? []);
+    this.images.set(bekannt);
+    this.isLoading.set(bekannt.length === 0);
+
+    // 2. Frisch nachladen - gleichzeitig statt nacheinander, und jede Quelle
+    //    erscheint, sobald sie da ist.
+    const zuHolen = allChannels.filter(channel => !cache.isFresh(cache.readChannel(channel)));
+    if (zuHolen.length === 0) {
+      this.isLoading.set(false);
+      return;
     }
-    
-    this.images.set(allImages);
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('x_gallery_images', JSON.stringify(allImages));
-    }
+
+    this.loadProgress.set({ done: 0, total: zuHolen.length });
+    await this.inParallel(zuHolen, App.PARALLEL, async channel => {
+      try {
+        const frisch = await fetchChannelImages(channel);
+        cache.writeChannel(channel, frisch);
+        this.mergeChannel(channel, frisch);
+      } catch (e) {
+        // Eine kaputte Quelle darf die anderen 19 nicht aufhalten.
+        console.error(`Error loading ${channel}`, e);
+      } finally {
+        this.loadProgress.update(p => (p ? { ...p, done: p.done + 1 } : p));
+      }
+    });
+
+    this.loadProgress.set(null);
     this.isLoading.set(false);
+    this.rememberGallery();
+
+    if (this.images().length === 0) {
+      this.error.set('Keine der gespeicherten Quellen hat Bilder geliefert.');
+    }
+  }
+
+  /**
+   * Ersetzt die Bilder einer Quelle an Ort und Stelle. Wichtig fuer den
+   * ruhigen Bildaufbau: unveraenderte Bilder behalten ihre Kachel (das
+   * Raster laeuft ueber `track item.url`), es blinkt also nichts auf, wenn
+   * ein Kanal seine frischen Daten nachliefert.
+   */
+  private mergeChannel(channel: string, fresh: ImageItem[]) {
+    this.images.update(list => {
+      const position = list.findIndex(item => item.channel === channel);
+      const ohne = list.filter(item => item.channel !== channel);
+
+      if (position === -1) return [...ohne, ...fresh];
+
+      ohne.splice(position, 0, ...fresh);
+      return ohne;
+    });
+  }
+
+  /**
+   * Arbeitet die Liste ab, aber hoechstens `limit` Stueck gleichzeitig.
+   * Alle 20 auf einmal loszuschicken wuerde Mastodon-Server und den eigenen
+   * Reddit-Vermittler unnoetig bedraengen.
+   */
+  private async inParallel<T>(items: readonly T[], limit: number, work: (item: T) => Promise<void>) {
+    let next = 0;
+
+    const worker = async () => {
+      while (next < items.length) {
+        await work(items[next++]);
+      }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  }
+
+  /** Haelt fest, was gerade zu sehen ist - fuer den naechsten Seitenaufruf. */
+  private rememberGallery() {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    try {
+      localStorage.setItem('x_gallery_images', JSON.stringify(this.images()));
+    } catch {
+      // Speicher voll - die Kanaele im Zwischenspeicher sind wichtiger.
+    }
   }
 
   async viewFavorites() {
@@ -350,23 +426,31 @@ export class App {
     this.viewingAll.set(false);
     this.viewingFavorites.set(false);
     this.channelName.set(channel);
-    this.isLoading.set(true);
     this.error.set('');
-    this.images.set([]);
-    
+
+    // Was vom letzten Mal da ist, steht sofort auf dem Schirm.
+    const bekannt = cache.readChannel(channel);
+    this.images.set(bekannt?.images ?? []);
+    this.isLoading.set(!bekannt?.images.length);
+
+    // Ganz frisch geholt? Dann reicht das, was schon zu sehen ist.
+    if (cache.isFresh(bekannt)) {
+      this.isLoading.set(false);
+      return;
+    }
+
     try {
       const imgs = await fetchChannelImages(channel);
 
       if (imgs.length > 0) {
         this.images.set(imgs);
-        if (isPlatformBrowser(this.platformId)) {
-          localStorage.setItem('x_gallery_images', JSON.stringify(imgs));
-        }
-      } else {
+        cache.writeChannel(channel, imgs);
+        this.rememberGallery();
+      } else if (!bekannt?.images.length) {
         this.error.set('Keine Bilder gefunden. Eventuell existiert der Kanal nicht oder hat keine Medien.');
       }
-    } catch (err: any) {
-      this.error.set(err.message || 'Ein unbekannter Fehler ist aufgetreten.');
+    } catch (err: unknown) {
+      this.error.set((err as Error)?.message || 'Ein unbekannter Fehler ist aufgetreten.');
     } finally {
       this.isLoading.set(false);
     }
@@ -487,6 +571,7 @@ export class App {
       localStorage.removeItem('x_saved_channels');
       localStorage.removeItem('x_favorite_images');
       localStorage.removeItem('x_gallery_images');
+      cache.clearCache();
     }
     this.showClearConfirm.set(false);
   }
