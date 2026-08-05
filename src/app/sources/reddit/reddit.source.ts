@@ -21,6 +21,9 @@ const WORKER_URL = 'https://image-wall-reddit.image-wall-reddit.workers.dev/redd
 
 const MAX_IMAGES = 100;
 
+/** Breite der Vorschau im Raster. Eine Rasterspalte ist rund 270 px breit. */
+const PREVIEW_WIDTH = 700;
+
 /** Grosses, immer gefuelltes Subreddit - nur fuer die Erreichbarkeitspruefung. */
 const PROBE = 'EarthPorn';
 
@@ -84,6 +87,22 @@ function pickImage(html: string, thumbnail?: string): string | null {
   return null;
 }
 
+/**
+ * Reddit liefert nur Originale - im Schnitt knapp 1 MB, teils ueber 4000 px
+ * breit. Fuers Raster ist das reine Verschwendung, deshalb laeuft die Vorschau
+ * ueber denselben Bild-Weiterleiter, der schon fuer das Favoriten-ZIP im
+ * Einsatz ist. `we` heisst "without enlargement": kleinere Bilder werden
+ * dadurch nicht kuenstlich aufgeblasen.
+ */
+function withPreview(url: string, channel: string): ImageItem {
+  const withoutScheme = url.replace(/^https?:\/\//, '');
+  return {
+    url,
+    preview: `https://images.weserv.nl/?url=${encodeURIComponent(withoutScheme)}&w=${PREVIEW_WIDTH}&we&output=webp`,
+    channel
+  };
+}
+
 /** Weg 1: eigener Vermittler - bis zu 100 Bilder. */
 async function fetchViaWorker(subreddit: string, channel: string): Promise<ImageItem[]> {
   const url = `${WORKER_URL}?sub=${encodeURIComponent(subreddit)}&limit=${MAX_IMAGES}`;
@@ -94,7 +113,7 @@ async function fetchViaWorker(subreddit: string, channel: string): Promise<Image
     throw new Error(data?.error || 'Der Reddit-Vermittler antwortet gerade nicht.');
   }
 
-  return data.images.map((image: { url: string }) => ({ url: image.url, channel }));
+  return data.images.map((image: { url: string }) => withPreview(image.url, channel));
 }
 
 /** Weg 2 (Notausgang): der alte Umweg ueber rss2json - hoechstens 10 Bilder. */
@@ -111,7 +130,7 @@ async function fetchViaRss2json(subreddit: string, channel: string): Promise<Ima
     if (!url || seen.has(url)) continue;
 
     seen.add(url);
-    images.push({ url, channel });
+    images.push(withPreview(url, channel));
     if (images.length >= MAX_IMAGES) break;
   }
 

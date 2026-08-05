@@ -14,7 +14,7 @@
  * X-Konten unterscheiden lassen.
  */
 
-import { ImageItem, SourceAdapter } from '../image-item';
+import { ImageItem, SourceAdapter, isBigEnough } from '../image-item';
 
 const API = 'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed';
 const MAX_IMAGES = 100;
@@ -41,21 +41,36 @@ function handleFrom(input: string): string {
 }
 
 /**
+ * Ein Bild, wie Bluesky es liefert: `fullsize` ist das Original, `thumb` eine
+ * fertige Fassung mit 1000 px laengster Kante, `aspectRatio` nennt die
+ * Originalmasse.
+ */
+interface BlueskyImage {
+  fullsize?: string;
+  thumb?: string;
+  aspectRatio?: { width: number; height: number };
+}
+
+/**
  * Sammelt die Bilder eines Beitrags.
  *
  * Bluesky kennt dafuer mehrere Formen: einzelne Bilder (`images`), Galerien
  * (`items`) und zitierte Beitraege mit Medien (`media`). Videos bleiben
  * aussen vor - hier sollen nur Bilder an die Wand.
  */
-function imagesFrom(embed: Record<string, unknown> | undefined): string[] {
+function imagesFrom(embed: Record<string, unknown> | undefined): BlueskyImage[] {
   if (!embed) return [];
 
-  const found: string[] = [];
-  const list = (embed['images'] ?? embed['items']) as { fullsize?: string }[] | undefined;
+  const found: BlueskyImage[] = [];
+  const list = (embed['images'] ?? embed['items']) as BlueskyImage[] | undefined;
 
   if (Array.isArray(list)) {
     for (const image of list) {
-      if (image?.fullsize) found.push(image.fullsize);
+      // Bluesky nennt die Originalmasse gleich mit - Briefmarken und Logos
+      // lassen sich dadurch aussortieren, ohne sie erst zu laden.
+      if (image?.fullsize && isBigEnough(image.aspectRatio?.width, image.aspectRatio?.height)) {
+        found.push(image);
+      }
     }
   }
 
@@ -120,11 +135,14 @@ export const blueskySource: SourceAdapter = {
     const seen = new Set<string>();
 
     for (const entry of feed) {
-      for (const url of imagesFrom(entry.post?.embed)) {
+      for (const image of imagesFrom(entry.post?.embed)) {
+        const url = image.fullsize as string;
         if (seen.has(url)) continue;
 
         seen.add(url);
-        images.push({ url, channel });
+        // `thumb` kommt von Bluesky selbst (1000 px lange Kante) - fuers
+        // Raster reichlich und ohne Umweg ueber einen fremden Dienst.
+        images.push({ url, preview: image.thumb ?? url, channel });
         if (images.length >= MAX_IMAGES) return images;
       }
     }

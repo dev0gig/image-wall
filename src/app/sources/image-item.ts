@@ -1,5 +1,5 @@
 /**
- * Gemeinsame Bausteine fuer alle Bild-Quellen (X, Reddit, Bluesky, Mastodon, ...).
+ * Gemeinsame Bausteine fuer alle Bild-Quellen (Reddit, Bluesky, Mastodon, ...).
  *
  * Jede Quelle liegt in einem eigenen Unterordner und bringt einen Adapter mit,
  * der genau diese vier Fragen beantwortet:
@@ -9,11 +9,36 @@
  *   - wie bekomme ich ein Bild per JavaScript herunter (fuer das ZIP)?
  */
 
-export type SourceId = 'x' | 'reddit' | 'bluesky' | 'mastodon';
+export type SourceId = 'reddit' | 'bluesky' | 'mastodon';
+
+/**
+ * Bilder unter dieser Kantenlaenge sind Symbole, Logos oder Briefmarken und
+ * gehoeren nicht an eine Bilderwand. Gemessen wird die **laengste** Kante:
+ * ein schmales Panorama (700x377) ist ein echtes Bild, eine 140x140-Briefmarke
+ * nicht.
+ */
+export const MIN_EDGE = 400;
+
+/** Ist das Bild gross genug fuers Raster? Ohne bekannte Masse: ja. */
+export function isBigEnough(width?: number, height?: number): boolean {
+  if (!width || !height) return true;
+  return Math.max(width, height) >= MIN_EDGE;
+}
 
 export interface ImageItem {
+  /**
+   * Das Originalbild in voller Aufloesung - fuer die Grossansicht, den
+   * Download-Knopf und das Favoriten-ZIP.
+   */
   url: string;
-  /** Gespeicherter Kanalname: `ArchDigest`, `r/EarthPorn`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
+
+  /**
+   * Verkleinerte Fassung fuers Raster (rund 700 px breit). Fehlt sie, wird
+   * `url` angezeigt. Aeltere gespeicherte Bilder haben dieses Feld nicht.
+   */
+  preview?: string;
+
+  /** Gespeicherter Kanalname: `r/EarthPorn`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
   channel: string;
 }
 
@@ -32,7 +57,7 @@ export interface SourceAdapter {
   /** Gehoert ein bereits gespeicherter Kanalname zu dieser Quelle? */
   owns(channel: string): boolean;
 
-  /** Eingabe (Handle, @Handle, URL, r/Name ...) -> gespeicherter Kanalname. */
+  /** Eingabe (Handle, URL, r/Name ...) -> gespeicherter Kanalname. */
   normalize(input: string): string;
 
   /** Gespeicherter Kanalname -> Anzeigetext in der Oberflaeche. */

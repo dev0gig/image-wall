@@ -1,7 +1,7 @@
 # Image Wall
 
 Eine Ein-Seiten-Web-App (Angular 21), die Bilder als Raster anzeigt – aus
-Bluesky- und Mastodon-Konten, Reddit-Subreddits und X-Konten (über Nitter).
+Bluesky- und Mastodon-Konten und Reddit-Subreddits.
 Favoriten, gespeicherte Quellen und die Galerie liegen im Browser
 (localStorage) – es gibt keine Datenbank und keinen Login.
 
@@ -12,11 +12,30 @@ Eingabe (alles im selben Feld):
 | Bluesky | `esa.int`, `jemand.bsky.social`, `bsky.app/profile/…` |
 | Mastodon | `@eff@mastodon.social`, `https://server.tld/@name` |
 | Reddit | `r/EarthPorn`, Subreddit-URL |
-| X | `ArchDigest`, `@ArchDigest`, Profil-URL |
 
 Woran die App die Quelle erkennt: Eine Mastodon-Adresse hat zwei Teile mit `@`
-dazwischen, ein Bluesky-Handle ist eine Adresse mit Punkt, ein X-Handle hat
-weder das eine noch das andere.
+dazwischen, ein Bluesky-Handle ist eine Adresse mit Punkt, ein Subreddit
+beginnt mit `r/`. Passt eine Eingabe zu keiner Quelle, sagt die App das.
+
+**X (Twitter) wird nicht mehr unterstützt.** X war nur über öffentliche
+Nitter-Spiegel lesbar, und davon funktioniert keiner mehr – die Quelle ist
+deshalb komplett entfernt.
+
+## Bildgrößen
+
+* **Kleine Bilder fliegen raus.** Alles, dessen längste Kante unter 400 px
+  liegt, kommt gar nicht erst an die Wand – das sind Symbole, Logos und
+  Briefmarken. Bluesky und Mastodon nennen die Maße vorab (`aspectRatio` bzw.
+  `meta.original`), dort wird vor dem Laden gefiltert; Reddit nennt sie nicht,
+  dort greift der Filter beim Ankommen des Bildes.
+* **Große Bilder laufen im Raster mit 700 px Breite.** Eine Rasterspalte ist
+  rund 270 px breit; ein 4000-px-Original wäre reine Verschwendung
+  (Reddit: im Schnitt 915 KB voll gegen 95 KB verkleinert). Bluesky (`thumb`,
+  1000 px) und Mastodon (`preview_url`, ~600 px) liefern fertige Fassungen
+  mit, Reddit läuft über `images.weserv.nl` (`&we` verhindert, dass kleine
+  Bilder aufgeblasen werden).
+* **Das Original bleibt erhalten.** Großansicht, der Download-Knopf an jedem
+  Bild und das Favoriten-ZIP holen immer die unveränderte Datei der Quelle.
 
 Live: https://dev0gig.github.io/image-wall/
 
@@ -62,22 +81,19 @@ einen Eintrag in `SOURCES`.
 
 ```
 src/app/sources/
-  image-item.ts        gemeinsame Typen (ImageItem, SourceAdapter)
-  rss2json.ts          Helfer für api.rss2json.com (von beiden Quellen genutzt)
+  image-item.ts        gemeinsame Typen (ImageItem, SourceAdapter), Größenfilter
+  rss2json.ts          Helfer für api.rss2json.com (nur noch Reddits Notausgang)
   index.ts             Verzeichnis aller Quellen
   bluesky/bluesky.source.ts Bluesky, direkt aus dem Browser
   mastodon/mastodon.source.ts Mastodon, direkt aus dem Browser
   reddit/reddit.source.ts   Reddit über den eigenen Vermittler (worker/)
-  x/x.source.ts        X über nitter.net
 ```
 
 ## Hinweise
 
-- Feeds lassen sich nicht direkt aus dem Browser lesen (kein CORS-Header).
-  Reddit läuft deshalb über den eigenen Vermittler, X über `api.rss2json.com`.
-  Ist die Nitter-Instanz gerade nicht erreichbar, bleibt das Raster leer –
-  das ist keine Fehlfunktion der App. Die Fußleiste zeigt für jede Quelle an,
-  ob sie gerade erreichbar ist (Klick darauf prüft sofort neu).
+- Reddits Feed lässt sich nicht direkt aus dem Browser lesen (kein
+  CORS-Header), deshalb der eigene Vermittler. Die Fußleiste zeigt für jede
+  Quelle an, ob sie gerade erreichbar ist (Klick darauf prüft sofort neu).
 - **Bluesky:** bis zu 100 Bilder pro Konto. Die einzige Quelle ohne
   Zwischenstation – Bluesky erlaubt fremden Seiten den Zugriff ausdrücklich
   (CORS), und der Filter `posts_with_media` wirft den Text schon auf dem Server
@@ -88,7 +104,6 @@ src/app/sources/
   Pro Abruf gibt Mastodon 40 Beiträge heraus, die App blättert höchstens
   dreimal. Die Bilder lassen sich hier sogar direkt herunterladen – für das ZIP
   braucht es keinen Umweg.
-- **X:** bis zu 20 Bilder pro Konto (ein Beitrag kann mehrere Bilder haben).
 - **Reddit:** bis zu 100 Bilder pro Subreddit über den eigenen Vermittler
   (Cloudflare Worker, Quelltext in [`worker/`](worker/)). Er holt Reddits Feed
   direkt; nur über ihn kommen auch Subreddits an, die `rss2json` nicht
@@ -99,7 +114,7 @@ src/app/sources/
 - Reddit liefert im Feed nur ein kleines Vorschaubild. Da
   `preview.redd.it/<id>.jpg` und `i.redd.it/<id>.jpg` dieselbe Datei sind,
   rechnet die App die Adresse auf das Original um.
-- Der ZIP-Download der Favoriten lädt X-Bilder direkt von `pbs.twimg.com`
-  (die Nitter-URL wird vorher zurückgerechnet). Reddit und Bluesky verbieten
-  das Laden per JavaScript auf ihren Bild-Servern, deshalb laufen deren Bilder
-  für das ZIP über den Bild-Weiterleiter `images.weserv.nl`.
+- Der Download (einzelnes Bild wie auch Favoriten-ZIP) holt immer das
+  Original. Reddit und Bluesky verbieten das Laden per JavaScript auf ihren
+  Bild-Servern, deshalb laufen deren Bilder dafür über den Bild-Weiterleiter
+  `images.weserv.nl`; Mastodon erlaubt es direkt.

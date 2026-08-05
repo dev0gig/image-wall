@@ -12,7 +12,7 @@
  * Kanaele werden als `mastodon:<name>@<server>` gespeichert.
  */
 
-import { ImageItem, SourceAdapter } from '../image-item';
+import { ImageItem, SourceAdapter, isBigEnough } from '../image-item';
 
 const MAX_IMAGES = 100;
 
@@ -62,10 +62,21 @@ function addressOf(channel: string): Address {
   return address;
 }
 
+/**
+ * Ein Anhang, wie Mastodon ihn liefert: `url` ist das Original, `preview_url`
+ * eine fertige kleine Fassung (rund 600 px), `meta.original` nennt die Masse.
+ */
+interface Attachment {
+  type?: string;
+  url?: string;
+  preview_url?: string;
+  meta?: { original?: { width?: number; height?: number } };
+}
+
 interface Status {
   id: string;
-  media_attachments?: { type?: string; url?: string }[];
-  reblog?: { media_attachments?: { type?: string; url?: string }[] } | null;
+  media_attachments?: Attachment[];
+  reblog?: { media_attachments?: Attachment[] } | null;
 }
 
 async function ask(url: string, instance: string): Promise<unknown> {
@@ -96,12 +107,17 @@ async function accountId({ user, instance }: Address): Promise<string> {
   return account.id;
 }
 
-/** Bilder eines Beitrags - bei einem geteilten Beitrag die des Originals. */
-function imagesFrom(status: Status): string[] {
+/**
+ * Bilder eines Beitrags - bei einem geteilten Beitrag die des Originals.
+ * Mastodon nennt die Originalmasse mit, kleine Bilder fliegen deshalb raus,
+ * ohne dass sie erst geladen werden muessen.
+ */
+function imagesFrom(status: Status): Attachment[] {
   const attachments = status.reblog?.media_attachments ?? status.media_attachments ?? [];
-  return attachments
-    .filter(media => media.type === 'image' && media.url)
-    .map(media => media.url as string);
+  return attachments.filter(
+    media => media.type === 'image' && media.url &&
+      isBigEnough(media.meta?.original?.width, media.meta?.original?.height)
+  );
 }
 
 export const mastodonSource: SourceAdapter = {
@@ -141,11 +157,14 @@ export const mastodonSource: SourceAdapter = {
       if (!Array.isArray(statuses) || statuses.length === 0) break;
 
       for (const status of statuses) {
-        for (const image of imagesFrom(status)) {
-          if (seen.has(image)) continue;
+        for (const media of imagesFrom(status)) {
+          const url = media.url as string;
+          if (seen.has(url)) continue;
 
-          seen.add(image);
-          images.push({ url: image, channel });
+          seen.add(url);
+          // `preview_url` liefert Mastodon selbst mit (rund 600 px) - fuers
+          // Raster genug und ohne Umweg ueber einen fremden Dienst.
+          images.push({ url, preview: media.preview_url ?? url, channel });
           if (images.length >= MAX_IMAGES) return images;
         }
       }

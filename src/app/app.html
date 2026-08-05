@@ -72,14 +72,14 @@
           </button>
         } @else {
           <div class="relative flex flex-col flex-1 lg:flex-none min-w-0">
-            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit, Bluesky, Mastodon or X</label>
+            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit, Bluesky or Mastodon</label>
             <input
               id="channel-input"
               type="text"
               [value]="channelName()"
               (input)="updateChannelName($event)"
               (keyup.enter)="loadImages()"
-              placeholder="r/EarthPorn, esa.int, @eff@mastodon.social"
+              placeholder="r/EarthPorn, esa.int, &#64;eff&#64;mastodon.social"
               class="bg-transparent border-b border-white/30 px-0 py-1 text-sm focus:outline-none focus:border-white transition-colors w-full lg:w-48 placeholder-white/20"
             />
           </div>
@@ -137,30 +137,52 @@
                 </div>
               }
 
-              <!-- Favorite Button (auf Touch-Geraeten immer sichtbar) -->
-              <button
-                (click)="toggleFavorite(item, $event)"
-                class="absolute top-3 right-3 z-30 p-2 rounded-full backdrop-blur-md transition-all duration-150 active:scale-75 flex items-center justify-center shadow-sm"
-                [class.bg-black/60]="!isFavorite(item.url)"
-                [class.bg-white]="isFavorite(item.url)"
-                [class.text-white]="!isFavorite(item.url)"
-                [class.text-red-500]="isFavorite(item.url)"
-                [class.lg:opacity-0]="!isFavorite(item.url)"
-                [class.lg:group-hover:opacity-100]="!isFavorite(item.url)"
-                [class.animate-pop]="favoritePulse() === item.url"
-              >
-                <mat-icon class="text-sm scale-[0.8] leading-none h-4 w-4 flex items-center justify-center">
-                  {{ isFavorite(item.url) ? 'favorite' : 'favorite_border' }}
-                </mat-icon>
-              </button>
+              <!-- Herz und Download (auf Touch-Geraeten immer sichtbar) -->
+              <div class="absolute top-3 right-3 z-30 flex items-center gap-2">
+                <button
+                  (click)="downloadImage(item, i, $event)"
+                  [disabled]="downloadingUrl() !== null"
+                  class="p-2 rounded-full backdrop-blur-md bg-black/60 text-white transition-all duration-150 active:scale-75 flex items-center justify-center shadow-sm lg:opacity-0 lg:group-hover:opacity-100 disabled:cursor-wait"
+                  title="In voller Auflösung herunterladen"
+                  aria-label="Herunterladen"
+                >
+                  <mat-icon class="text-sm scale-[0.8] leading-none h-4 w-4 flex items-center justify-center"
+                            [class.animate-spin]="downloadingUrl() === item.url">
+                    {{ downloadingUrl() === item.url ? 'refresh' : 'download' }}
+                  </mat-icon>
+                </button>
+
+                <button
+                  (click)="toggleFavorite(item, $event)"
+                  class="p-2 rounded-full backdrop-blur-md transition-all duration-150 active:scale-75 flex items-center justify-center shadow-sm"
+                  [class.bg-black/60]="!isFavorite(item.url)"
+                  [class.bg-white]="isFavorite(item.url)"
+                  [class.text-white]="!isFavorite(item.url)"
+                  [class.text-red-500]="isFavorite(item.url)"
+                  [class.lg:opacity-0]="!isFavorite(item.url)"
+                  [class.lg:group-hover:opacity-100]="!isFavorite(item.url)"
+                  [class.animate-pop]="favoritePulse() === item.url"
+                >
+                  <mat-icon class="text-sm scale-[0.8] leading-none h-4 w-4 flex items-center justify-center">
+                    {{ isFavorite(item.url) ? 'favorite' : 'favorite_border' }}
+                  </mat-icon>
+                </button>
+              </div>
 
               <!-- Counter Badge -->
               <div class="absolute bottom-3 right-3 z-20 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[9px] font-bold tracking-widest text-white/80 pointer-events-none">
                 {{ i + 1 }} / {{ images().length }}
               </div>
 
+              <!--
+                Im Raster laeuft die verkleinerte Fassung (rund 700 px breit);
+                das Original haengt am Bild und wird nur fuer Grossansicht,
+                Download und ZIP geholt.
+              -->
               <img
-                [src]="item.url"
+                [src]="item.preview || item.url"
+                (load)="onImageLoaded(item, $event)"
+                (error)="onPreviewError(item, $event)"
                 alt="Grid image"
                 referrerpolicy="no-referrer"
                 class="w-full h-auto block object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-500"
@@ -311,6 +333,18 @@
               {{ channelLabel(images()[carouselIndex()].channel) }}
             </div>
             <button
+              (click)="downloadImage(images()[carouselIndex()], carouselIndex(), $event)"
+              [disabled]="downloadingUrl() !== null"
+              class="flex items-center justify-center p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-150 active:scale-75 disabled:cursor-wait"
+              title="In voller Auflösung herunterladen"
+              aria-label="Herunterladen"
+            >
+              <mat-icon class="text-[18px] leading-none h-5 w-5 flex items-center justify-center"
+                        [class.animate-spin]="downloadingUrl() === images()[carouselIndex()].url">
+                {{ downloadingUrl() === images()[carouselIndex()].url ? 'refresh' : 'download' }}
+              </mat-icon>
+            </button>
+            <button
               (click)="toggleFavorite(images()[carouselIndex()], $event)"
               class="flex items-center justify-center p-2 rounded-full transition-all duration-150 active:scale-75"
               [class.animate-pop]="favoritePulse() === images()[carouselIndex()].url"
@@ -364,11 +398,11 @@
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Supported Sources</h4>
             <p>
-              This tool supports <strong>Bluesky</strong> and <strong>Mastodon</strong> accounts, <strong>Reddit</strong> subreddits and <strong>X (Twitter)</strong> accounts.
+              This tool supports <strong>Bluesky</strong> and <strong>Mastodon</strong> accounts and <strong>Reddit</strong> subreddits.
               For Bluesky, type the handle (e.g. <code>esa.int</code>, <code>someone.bsky.social</code>) or paste the profile URL.
               For Mastodon, type the full address (e.g. <code>&#64;eff&#64;mastodon.social</code>) or paste the profile URL.
               For Reddit, type <code>r/EarthPorn</code> or paste the subreddit URL.
-              For X, type the handle (e.g. <code>ArchDigest</code>), use an <code>&#64;</code> prefix, or paste the profile URL.
+              <strong>X (Twitter) is no longer supported</strong> — it could only be read through public Nitter mirrors, and none of them work any more.
             </p>
           </section>
 
@@ -377,14 +411,35 @@
             <p>
               <strong>Bluesky</strong> and <strong>Mastodon</strong> deliver up to <strong>100 images</strong> per account &mdash; both are queried directly by your browser, no relay in between.
               <strong>Reddit</strong> delivers up to <strong>100 images per subreddit</strong> through its own relay (see <code>worker/</code>); if that relay is unavailable, the app falls back to the free feed service and 10 images.
-              <strong>X</strong> is capped at <strong>20 images</strong> per account.
+            </p>
+          </section>
+
+          <section>
+            <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Image sizes</h4>
+            <p>
+              <strong>Small images are filtered out.</strong> Anything whose longest edge is under
+              <strong>400 pixels</strong> never reaches the wall &mdash; those are icons, logos and thumbnails,
+              not photos. Bluesky and Mastodon report the dimensions up front, so those are dropped before
+              they are even loaded; Reddit does not, so they are removed the moment they arrive.
+            </p>
+            <p class="mt-3">
+              <strong>Large images are scaled down to 700 pixels wide</strong> for the grid &mdash; height follows
+              along, nothing is cropped. A grid column is only about 270 pixels wide, so a 4000 pixel original
+              would be pure waste: Reddit images average around <strong>915 KB</strong> at full size and
+              <strong>95 KB</strong> scaled. Bluesky and Mastodon supply their own scaled versions;
+              Reddit images go through the image relay <code>images.weserv.nl</code>.
+            </p>
+            <p class="mt-3">
+              <strong>The full-size original is always kept.</strong> The lightbox, the download button on every
+              image and the favorites ZIP all fetch the untouched file straight from the source.
             </p>
           </section>
 
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Favorites & Downloads</h4>
             <p>
-              Click the heart icon on any image to save it to your Favorites.
+              Click the heart icon on any image to save it to your Favorites, or the download icon next to it
+              to save that single image in full resolution.
               In the Favorites view, you can download all your curated images as a single <strong>ZIP archive</strong>.
               Reddit and Bluesky images are routed through the image relay <code>images.weserv.nl</code> for this, because their own servers refuse downloads made by JavaScript. Mastodon servers allow it directly.
             </p>

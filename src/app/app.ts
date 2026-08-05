@@ -4,6 +4,8 @@ import { MatIconModule } from '@angular/material/icon';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import {
+  INPUT_HELP,
+  MIN_EDGE,
   channelLabel,
   checkAllSources,
   fetchChannelImages,
@@ -64,6 +66,9 @@ export class App {
   /** Sichtbarkeit des Nach-oben-Knopfes. */
   showToTop = signal(false);
   private lastScrollTop = 0;
+
+  /** URL des Bildes, das gerade einzeln heruntergeladen wird. */
+  downloadingUrl = signal<string | null>(null);
 
   // Erreichbarkeit der Quellen (Fussleiste)
   sourceStatus = signal<SourceStatus[]>([]);
@@ -157,7 +162,10 @@ export class App {
     if (!input) return;
 
     const channel = normalizeChannel(input);
-    if (!channel) return;
+    if (!channel) {
+      this.error.set(INPUT_HELP);
+      return;
+    }
 
     const currentSaved = this.savedChannels();
     if (!currentSaved.includes(channel)) {
@@ -270,14 +278,75 @@ export class App {
     return this.favorites().some(f => f.url === url);
   }
 
+  /**
+   * Letztes Netz gegen Briefmarken: Bluesky und Mastodon nennen die Bildmasse
+   * vorab, Reddit nicht. Was hier trotzdem zu klein ankommt, verschwindet
+   * still aus dem Raster. In den Favoriten wird nichts entfernt - die hat
+   * jemand bewusst gespeichert.
+   */
+  onImageLoaded(item: ImageItem, event: Event) {
+    if (this.viewingFavorites()) return;
+
+    const img = event.target as HTMLImageElement;
+    if (!img.naturalWidth || Math.max(img.naturalWidth, img.naturalHeight) >= MIN_EDGE) return;
+
+    this.images.update(list => list.filter(other => other.url !== item.url));
+  }
+
+  /**
+   * Faellt der Bild-Weiterleiter aus, waere die Kachel leer. Dann eben das
+   * Original - gross, aber besser als nichts.
+   */
+  onPreviewError(item: ImageItem, event: Event) {
+    const img = event.target as HTMLImageElement;
+    if (img.src !== item.url) img.src = item.url;
+  }
+
+  /** Dateiname fuer ein heruntergeladenes Bild, z. B. `r_EarthPorn_3.jpg`. */
+  private fileNameFor(item: ImageItem, index: number): string {
+    let ext = 'jpg';
+    if (item.url.toLowerCase().includes('.png')) ext = 'png';
+    if (item.url.toLowerCase().includes('.gif')) ext = 'gif';
+
+    // Kanalnamen enthalten Zeichen, die in Dateinamen nichts verloren haben:
+    // der Schraegstrich in `r/EarthPorn` legt sonst einen Ordner an, der
+    // Doppelpunkt in `bsky:name` ist unter Windows unzulaessig.
+    const name = item.channel.replace(/[^A-Za-z0-9._-]/g, '_');
+    return `${name}_${index}.${ext}`;
+  }
+
+  /**
+   * Laedt ein einzelnes Bild in voller Aufloesung herunter - also das
+   * Original der Quelle, nicht die verkleinerte Fassung aus dem Raster.
+   */
+  async downloadImage(item: ImageItem, index: number, event?: Event) {
+    event?.stopPropagation();
+    if (!isPlatformBrowser(this.platformId) || this.downloadingUrl()) return;
+
+    this.downloadingUrl.set(item.url);
+    try {
+      const response = await fetch(toDownloadableUrl(item));
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      saveAs(await response.blob(), this.fileNameFor(item, index + 1));
+    } catch {
+      this.error.set('Das Bild ließ sich nicht herunterladen. Die Quelle blockt den Zugriff gerade.');
+    } finally {
+      this.downloadingUrl.set(null);
+    }
+  }
+
   async loadImages() {
     // Enter im leeren Feld zeigt etwas Ansehnliches statt einer Fehlermeldung.
     const input = this.channelName().trim() || 'r/EarthPorn';
-    // Eingabe aufraeumen: @Handle, r/Subreddit oder eine eingefuegte URL
+    // Eingabe aufraeumen: r/Subreddit, Bluesky-Handle, @name@server oder URL
     const channel = normalizeChannel(input);
 
-    if (!channel) return;
-    
+    if (!channel) {
+      this.error.set(INPUT_HELP);
+      return;
+    }
+
     this.viewingAll.set(false);
     this.viewingFavorites.set(false);
     this.channelName.set(channel);
@@ -479,18 +548,7 @@ export class App {
         const response = await fetch(toDownloadableUrl(fav));
         
         if (response.ok) {
-          const blob = await response.blob();
-          
-          let ext = 'jpg';
-          if (fav.url.toLowerCase().includes('.png')) ext = 'png';
-          if (fav.url.toLowerCase().includes('.gif')) ext = 'gif';
-          
-          // Kanalnamen enthalten Zeichen, die in Dateinamen nichts verloren
-          // haben: der Schraegstrich in `r/EarthPorn` legt im ZIP einen Ordner
-          // an, der Doppelpunkt in `bsky:name` ist unter Windows unzulaessig.
-          const name = fav.channel.replace(/[^A-Za-z0-9._-]/g, '_');
-          const filename = `${name}_${i + 1}.${ext}`;
-          zip.file(filename, blob);
+          zip.file(this.fileNameFor(fav, i + 1), await response.blob());
           count++;
         }
       } catch (e) {
