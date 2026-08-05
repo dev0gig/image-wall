@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal, PLATFORM_ID, inject } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -12,7 +12,7 @@ export interface ImageItem {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
-  imports: [MatIconModule],
+  imports: [MatIconModule, NgTemplateOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css',
   host: {
@@ -36,6 +36,9 @@ export class App {
   carouselIndex = signal(0);
   private touchStartX = 0;
   
+  // Seitenleiste als Bottom-Sheet auf schmalen Bildschirmen
+  menuOpen = signal(false);
+
   showClearConfirm = signal(false);
   isDownloadingZip = signal(false);
   showHelp = signal(false);
@@ -96,6 +99,7 @@ export class App {
   }
 
   async loadChannel(channel: string) {
+    this.menuOpen.set(false);
     this.channelName.set(channel);
     this.viewingAll.set(false);
     this.viewingFavorites.set(false);
@@ -103,6 +107,7 @@ export class App {
   }
 
   async viewAll() {
+    this.menuOpen.set(false);
     this.viewingAll.set(true);
     this.viewingFavorites.set(false);
     this.channelName.set('');
@@ -136,6 +141,7 @@ export class App {
   }
 
   async viewFavorites() {
+    this.menuOpen.set(false);
     this.viewingFavorites.set(true);
     this.viewingAll.set(false);
     this.channelName.set('');
@@ -283,7 +289,13 @@ export class App {
   }
 
   handleKeyDown(event: KeyboardEvent) {
-    if (!this.carouselOpen()) return;
+    if (!this.carouselOpen()) {
+      if (event.key === 'Escape') {
+        if (this.showHelp()) this.showHelp.set(false);
+        else if (this.menuOpen()) this.menuOpen.set(false);
+      }
+      return;
+    }
     if (event.key === 'ArrowRight') this.nextImage();
     if (event.key === 'ArrowLeft') this.prevImage();
     if (event.key === 'Escape') this.closeCarousel();
