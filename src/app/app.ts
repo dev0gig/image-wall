@@ -3,11 +3,15 @@ import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import {
+  channelLabel,
+  fetchChannelImages,
+  normalizeChannel,
+  toDownloadableUrl,
+  type ImageItem
+} from './sources';
 
-export interface ImageItem {
-  url: string;
-  channel: string;
-}
+export type { ImageItem } from './sources';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,15 +74,18 @@ export class App {
     }
   }
   
+  /** Anzeigetext eines Kanals, z. B. `@ArchDigest` oder `r/EarthPorn`. */
+  channelLabel(channel: string): string {
+    return channelLabel(channel);
+  }
+
   saveCurrentChannel() {
-    let channel = this.channelName().trim();
+    const input = this.channelName().trim();
+    if (!input) return;
+
+    const channel = normalizeChannel(input);
     if (!channel) return;
-    
-    if (channel.includes('x.com/')) channel = channel.split('x.com/')[1];
-    if (channel.includes('twitter.com/')) channel = channel.split('twitter.com/')[1];
-    if (channel.startsWith('@')) channel = channel.substring(1);
-    channel = channel.split('/')[0];
-    
+
     const currentSaved = this.savedChannels();
     if (!currentSaved.includes(channel)) {
       const updated = [...currentSaved, channel];
@@ -126,7 +133,7 @@ export class App {
     
     for (const channel of allChannels) {
        try {
-         const imgs = await this.fetchChannelImages(channel);
+         const imgs = await fetchChannelImages(channel);
          allImages = [...allImages, ...imgs];
        } catch (e) {
          console.error(`Error loading ${channel}`, e);
@@ -183,48 +190,11 @@ export class App {
     return this.favorites().some(f => f.url === url);
   }
 
-  async fetchChannelImages(channel: string): Promise<ImageItem[]> {
-    const rssUrl = `https://nitter.net/${channel}/rss`;
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-    
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error('Fehler beim Abrufen des Feeds.');
-    }
-    
-    const data = await response.json();
-    if (data.status !== 'ok') {
-      throw new Error(data.message || 'Kanal nicht gefunden.');
-    }
-    
-    const extractedImages: ImageItem[] = [];
-    const items = data.items || [];
-    
-    for (const item of items) {
-      const html = item.content || item.description || '';
-      const regex = /<img[^>]+src="([^">]+)"/gi;
-      let match;
-      
-      while ((match = regex.exec(html)) !== null) {
-        let imgUrl = match[1];
-        imgUrl = imgUrl.replace(/&amp;/g, '&');
-        extractedImages.push({ url: imgUrl, channel });
-        if (extractedImages.length >= 20) break;
-      }
-      if (extractedImages.length >= 20) break;
-    }
-    
-    return extractedImages;
-  }
-
   async loadImages() {
-    let channel = this.channelName().trim() || 'ArchDigest';
-    // Clean up input in case user pastes a URL or @handle
-    if (channel.includes('x.com/')) channel = channel.split('x.com/')[1];
-    if (channel.includes('twitter.com/')) channel = channel.split('twitter.com/')[1];
-    if (channel.startsWith('@')) channel = channel.substring(1);
-    channel = channel.split('/')[0]; // Remove any trailing paths like /media
-    
+    const input = this.channelName().trim() || 'ArchDigest';
+    // Eingabe aufraeumen: @Handle, r/Subreddit oder eine eingefuegte URL
+    const channel = normalizeChannel(input);
+
     if (!channel) return;
     
     this.viewingAll.set(false);
@@ -235,8 +205,8 @@ export class App {
     this.images.set([]);
     
     try {
-      const imgs = await this.fetchChannelImages(channel);
-      
+      const imgs = await fetchChannelImages(channel);
+
       if (imgs.length > 0) {
         this.images.set(imgs);
         if (isPlatformBrowser(this.platformId)) {
@@ -367,21 +337,6 @@ export class App {
     }
   }
 
-  /**
-   * Nitter-Bild-URLs (https://nitter.net/pic/media%2Fabc.jpg) zeigen auf Twitter/X.
-   * Nitter selbst erlaubt kein Herunterladen per JavaScript (kein CORS-Header),
-   * pbs.twimg.com dagegen schon. Darum bauen wir die Original-URL zurueck.
-   */
-  toDownloadableUrl(url: string): string {
-    const marker = '/pic/';
-    const idx = url.indexOf(marker);
-    if (idx === -1) return url;
-
-    const raw = decodeURIComponent(url.substring(idx + marker.length));
-    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-    return `https://pbs.twimg.com/${raw.replace(/^\/+/, '')}`;
-  }
-
   async downloadFavoritesZip() {
     const favs = this.favorites();
     if (favs.length === 0) return;
@@ -393,7 +348,9 @@ export class App {
     for (let i = 0; i < favs.length; i++) {
       const fav = favs[i];
       try {
-        const response = await fetch(this.toDownloadableUrl(fav.url));
+        // Jede Quelle weiss selbst, ueber welche Adresse sich ihre Bilder
+        // per JavaScript laden lassen (X direkt, Reddit ueber weserv).
+        const response = await fetch(toDownloadableUrl(fav));
         
         if (response.ok) {
           const blob = await response.blob();
@@ -402,7 +359,9 @@ export class App {
           if (fav.url.toLowerCase().includes('.png')) ext = 'png';
           if (fav.url.toLowerCase().includes('.gif')) ext = 'gif';
           
-          const filename = `${fav.channel}_${i + 1}.${ext}`;
+          // Der Schraegstrich in `r/EarthPorn` wuerde im ZIP einen Ordner anlegen.
+          const name = fav.channel.replace(/\//g, '_');
+          const filename = `${name}_${i + 1}.${ext}`;
           zip.file(filename, blob);
           count++;
         }
