@@ -54,8 +54,13 @@ im Dashboard bei dem Token *Roll* (neuer Wert, gleiche Rechte) oder *Delete*.
   Programm außerhalb eines Browsers kann die Herkunft fälschen; gegen
   Trittbrettfahrer im Netz reicht es trotzdem. Neue Adresse (z. B. eine eigene
   Domain) → in `ALLOWED_ORIGINS` eintragen und neu deployen.
-- **Zwischenspeicher:** Antworten gelten 5 Minuten. Das schont Reddit und
-  verhindert, dass viele Besucher dieselbe Abfrage gleichzeitig auslösen.
+- **Zwischenspeicher: 15 Minuten.** Die wichtigste Rücksicht gegenüber Reddit –
+  egal wie viele Leute dasselbe Subreddit anschauen, Reddit wird höchstens
+  einmal pro Viertelstunde gefragt. Neue Beiträge erscheinen dadurch bis zu
+  15 Minuten später; für eine Bilderwand ist das ohne Belang.
+- **Wir sagen, wer wir sind:** Jede Anfrage an Reddit trägt einen eigenen
+  Namen samt Adresse der Seite (`USER_AGENT` in `src/index.js`). Genau das
+  wünscht Reddit sich; namenlose Abrufe werden eher gedrosselt.
 - **Reddit drosselt nach IP.** Sollte der Vermittler dauerhaft
   „Reddit hat keinen Feed geliefert" melden, teilen sich zu viele fremde
   Anfragen dieselbe Cloudflare-Adresse. Dann hilft ein kostenloser

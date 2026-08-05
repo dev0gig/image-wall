@@ -17,8 +17,15 @@ const MAX_LIMIT = 100;
 /** Reddit will wissen, wer fragt - ohne eigenen Namen wird schneller gesperrt. */
 const USER_AGENT = 'image-wall/1.0 (+https://dev0gig.github.io/image-wall/)';
 
-/** So lange darf eine Antwort zwischengespeichert werden (Sekunden). */
-const CACHE_SECONDS = 300;
+/**
+ * So lange darf eine Antwort zwischengespeichert werden (Sekunden).
+ *
+ * Das ist die wichtigste Ruecksicht gegenueber Reddit: Egal wie viele Leute
+ * dasselbe Subreddit anschauen, Reddit wird hoechstens einmal pro Viertelstunde
+ * gefragt. Fuer eine Bilderwand reicht das voellig - neue Beitraege sind eben
+ * bis zu 15 Minuten spaeter zu sehen.
+ */
+const CACHE_SECONDS = 900;
 
 /**
  * Nur diese Seiten duerfen den Vermittler benutzen.
