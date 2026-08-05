@@ -406,8 +406,10 @@ export class App {
           if (fav.url.toLowerCase().includes('.png')) ext = 'png';
           if (fav.url.toLowerCase().includes('.gif')) ext = 'gif';
           
-          // Der Schraegstrich in `r/EarthPorn` wuerde im ZIP einen Ordner anlegen.
-          const name = fav.channel.replace(/\//g, '_');
+          // Kanalnamen enthalten Zeichen, die in Dateinamen nichts verloren
+          // haben: der Schraegstrich in `r/EarthPorn` legt im ZIP einen Ordner
+          // an, der Doppelpunkt in `bsky:name` ist unter Windows unzulaessig.
+          const name = fav.channel.replace(/[^A-Za-z0-9._-]/g, '_');
           const filename = `${name}_${i + 1}.${ext}`;
           zip.file(filename, blob);
           count++;
