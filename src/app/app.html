@@ -72,14 +72,14 @@
           </button>
         } @else {
           <div class="relative flex flex-col flex-1 lg:flex-none min-w-0">
-            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Handle, Subreddit or Bluesky</label>
+            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit, Bluesky, Mastodon or X</label>
             <input
               id="channel-input"
               type="text"
               [value]="channelName()"
               (input)="updateChannelName($event)"
               (keyup.enter)="loadImages()"
-              placeholder="r/EarthPorn, nasa.gov, ArchDigest"
+              placeholder="r/EarthPorn, esa.int, @eff@mastodon.social"
               class="bg-transparent border-b border-white/30 px-0 py-1 text-sm focus:outline-none focus:border-white transition-colors w-full lg:w-48 placeholder-white/20"
             />
           </div>
@@ -335,8 +335,9 @@
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Supported Sources</h4>
             <p>
-              This tool supports <strong>Bluesky</strong> accounts, <strong>Reddit</strong> subreddits and <strong>X (Twitter)</strong> accounts.
-              For Bluesky, type the handle (e.g. <code>nasa.gov</code>, <code>someone.bsky.social</code>) or paste the profile URL.
+              This tool supports <strong>Bluesky</strong> and <strong>Mastodon</strong> accounts, <strong>Reddit</strong> subreddits and <strong>X (Twitter)</strong> accounts.
+              For Bluesky, type the handle (e.g. <code>esa.int</code>, <code>someone.bsky.social</code>) or paste the profile URL.
+              For Mastodon, type the full address (e.g. <code>&#64;eff&#64;mastodon.social</code>) or paste the profile URL.
               For Reddit, type <code>r/EarthPorn</code> or paste the subreddit URL.
               For X, type the handle (e.g. <code>ArchDigest</code>), use an <code>&#64;</code> prefix, or paste the profile URL.
             </p>
@@ -345,7 +346,7 @@
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Limits</h4>
             <p>
-              <strong>Bluesky</strong> delivers up to <strong>100 images</strong> per account &mdash; it is queried directly by your browser, no relay in between.
+              <strong>Bluesky</strong> and <strong>Mastodon</strong> deliver up to <strong>100 images</strong> per account &mdash; both are queried directly by your browser, no relay in between.
               <strong>Reddit</strong> delivers up to <strong>100 images per subreddit</strong> through its own relay (see <code>worker/</code>); if that relay is unavailable, the app falls back to the free feed service and 10 images.
               <strong>X</strong> is capped at <strong>20 images</strong> per account.
             </p>
@@ -356,7 +357,7 @@
             <p>
               Click the heart icon on any image to save it to your Favorites.
               In the Favorites view, you can download all your curated images as a single <strong>ZIP archive</strong>.
-              Reddit and Bluesky images are routed through the image relay <code>images.weserv.nl</code> for this, because their own servers refuse downloads made by JavaScript.
+              Reddit and Bluesky images are routed through the image relay <code>images.weserv.nl</code> for this, because their own servers refuse downloads made by JavaScript. Mastodon servers allow it directly.
             </p>
           </section>
 

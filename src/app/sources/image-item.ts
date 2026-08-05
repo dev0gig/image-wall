@@ -1,5 +1,5 @@
 /**
- * Gemeinsame Bausteine fuer alle Bild-Quellen (X, Reddit, Bluesky, ...).
+ * Gemeinsame Bausteine fuer alle Bild-Quellen (X, Reddit, Bluesky, Mastodon, ...).
  *
  * Jede Quelle liegt in einem eigenen Unterordner und bringt einen Adapter mit,
  * der genau diese vier Fragen beantwortet:
@@ -9,11 +9,11 @@
  *   - wie bekomme ich ein Bild per JavaScript herunter (fuer das ZIP)?
  */
 
-export type SourceId = 'x' | 'reddit' | 'bluesky';
+export type SourceId = 'x' | 'reddit' | 'bluesky' | 'mastodon';
 
 export interface ImageItem {
   url: string;
-  /** Gespeicherter Kanalname: `ArchDigest` (X), `r/EarthPorn`, `bsky:nasa.gov`. */
+  /** Gespeicherter Kanalname: `ArchDigest`, `r/EarthPorn`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
   channel: string;
 }
 

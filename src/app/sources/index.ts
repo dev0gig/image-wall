@@ -9,13 +9,14 @@
 
 import { blueskySource } from './bluesky/bluesky.source';
 import { ImageItem, SourceAdapter } from './image-item';
+import { mastodonSource } from './mastodon/mastodon.source';
 import { redditSource } from './reddit/reddit.source';
 import { xSource } from './x/x.source';
 
 export { type ImageItem, type SourceAdapter, type SourceId } from './image-item';
 
 /** Reihenfolge zaehlt: X ist die Standardquelle und steht deshalb am Ende. */
-export const SOURCES: readonly SourceAdapter[] = [redditSource, blueskySource, xSource];
+export const SOURCES: readonly SourceAdapter[] = [redditSource, mastodonSource, blueskySource, xSource];
 
 /** Welche Quelle ist gemeint, wenn der Nutzer `input` eintippt? */
 export function sourceForInput(input: string): SourceAdapter {

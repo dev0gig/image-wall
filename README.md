@@ -1,7 +1,7 @@
 # Image Wall
 
 Eine Ein-Seiten-Web-App (Angular 21), die Bilder als Raster anzeigt – aus
-Bluesky-Konten, Reddit-Subreddits und X-/Twitter-Konten (über Nitter).
+Bluesky- und Mastodon-Konten, Reddit-Subreddits und X-Konten (über Nitter).
 Favoriten, gespeicherte Quellen und die Galerie liegen im Browser
 (localStorage) – es gibt keine Datenbank und keinen Login.
 
@@ -10,11 +10,13 @@ Eingabe (alles im selben Feld):
 | Quelle | Beispiel |
 |---|---|
 | Bluesky | `esa.int`, `jemand.bsky.social`, `bsky.app/profile/…` |
+| Mastodon | `@eff@mastodon.social`, `https://server.tld/@name` |
 | Reddit | `r/EarthPorn`, Subreddit-URL |
 | X | `ArchDigest`, `@ArchDigest`, Profil-URL |
 
-Ein Bluesky-Handle ist immer eine Adresse mit Punkt, ein X-Handle nie – daran
-erkennt die App die Quelle.
+Woran die App die Quelle erkennt: Eine Mastodon-Adresse hat zwei Teile mit `@`
+dazwischen, ein Bluesky-Handle ist eine Adresse mit Punkt, ein X-Handle hat
+weder das eine noch das andere.
 
 Live: https://dev0gig.github.io/image-wall/
 
@@ -64,6 +66,7 @@ src/app/sources/
   rss2json.ts          Helfer für api.rss2json.com (von beiden Quellen genutzt)
   index.ts             Verzeichnis aller Quellen
   bluesky/bluesky.source.ts Bluesky, direkt aus dem Browser
+  mastodon/mastodon.source.ts Mastodon, direkt aus dem Browser
   reddit/reddit.source.ts   Reddit über den eigenen Vermittler (worker/)
   x/x.source.ts        X über nitter.net
 ```
@@ -80,6 +83,11 @@ src/app/sources/
   (CORS), und der Filter `posts_with_media` wirft den Text schon auf dem Server
   weg. Kein Schlüssel, keine Anmeldung, kein Ratenlimit, das sich alle teilen
   (Bluesky zählt pro IP, also pro Besucher). Videos werden übersprungen.
+- **Mastodon:** bis zu 100 Bilder pro Konto, ebenfalls ohne Zwischenstation.
+  Gefragt wird immer der Server, auf dem das Konto liegt (`@name@server.tld`).
+  Pro Abruf gibt Mastodon 40 Beiträge heraus, die App blättert höchstens
+  dreimal. Die Bilder lassen sich hier sogar direkt herunterladen – für das ZIP
+  braucht es keinen Umweg.
 - **X:** bis zu 20 Bilder pro Konto (ein Beitrag kann mehrere Bilder haben).
 - **Reddit:** bis zu 100 Bilder pro Subreddit über den eigenen Vermittler
   (Cloudflare Worker, Quelltext in [`worker/`](worker/)). Er holt Reddits Feed
