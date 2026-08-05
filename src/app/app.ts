@@ -61,6 +61,10 @@ export class App {
   favoritePulse = signal<string | null>(null);
   private pulseTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /** Sichtbarkeit des Nach-oben-Knopfes. */
+  showToTop = signal(false);
+  private lastScrollTop = 0;
+
   // Erreichbarkeit der Quellen (Fussleiste)
   sourceStatus = signal<SourceStatus[]>([]);
   isCheckingSources = signal(false);
@@ -301,6 +305,49 @@ export class App {
   
   updateChannelName(event: Event) {
     this.channelName.set((event.target as HTMLInputElement).value);
+  }
+
+  /**
+   * Zeigt den Nach-oben-Knopf, sobald man ein Stueck nach oben wischt und weit
+   * genug unten ist. Wischt man wieder nach unten oder ist man ohnehin fast
+   * oben, verschwindet er. Die beiden unterschiedlichen Grenzen (600 zum
+   * Zeigen, 200 zum Verstecken) verhindern Flackern am Umschaltpunkt.
+   */
+  onGridScroll(grid: HTMLElement) {
+    const top = grid.scrollTop;
+    const nachOben = top < this.lastScrollTop - 4;
+    const nachUnten = top > this.lastScrollTop + 4;
+    this.lastScrollTop = top;
+
+    if (nachOben && top > 600) this.showToTop.set(true);
+    else if (nachUnten || top < 200) this.showToTop.set(false);
+  }
+
+  /**
+   * Springt an den Anfang des Rasters. Bewusst mit fester Dauer statt
+   * `behavior: 'smooth'`: der Browser scrollt sonst mit fester Geschwindigkeit,
+   * was bei 100 Bildern ewig dauert.
+   */
+  scrollToTop(grid: HTMLElement) {
+    this.showToTop.set(false);
+    const start = grid.scrollTop;
+    if (start === 0) return;
+
+    if (!isPlatformBrowser(this.platformId) ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      grid.scrollTop = 0;
+      return;
+    }
+
+    const dauer = 400;
+    const beginn = performance.now();
+    const schritt = (jetzt: number) => {
+      const anteil = Math.min(1, (jetzt - beginn) / dauer);
+      // Am Anfang schnell, zum Schluss sanft abbremsen.
+      grid.scrollTop = start * (1 - (1 - Math.pow(1 - anteil, 3)));
+      if (anteil < 1) requestAnimationFrame(schritt);
+    };
+    requestAnimationFrame(schritt);
   }
 
   // Carousel Logic
