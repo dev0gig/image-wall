@@ -1,0 +1,6 @@
+name = "image-wall-reddit"
+main = "src/index.js"
+compatibility_date = "2026-08-05"
+
+# Kein Build-Schritt, keine Abhängigkeiten: eine einzelne JavaScript-Datei.
+# Deployen:  CLOUDFLARE_API_TOKEN=... npx wrangler deploy
