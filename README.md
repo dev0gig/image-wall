@@ -74,6 +74,21 @@ Der Build ist rein statisch (kein SSR). In der Produktions-Konfiguration ist
 `baseHref` auf `/image-wall/` gesetzt, weil GitHub Pages die Seite in einem
 Unterordner ausliefert. Der Entwicklungs-Server nutzt weiterhin `/`.
 
+## Als App installieren (PWA)
+
+Image Wall lässt sich über den Browser („App installieren" bzw. „Zum
+Startbildschirm hinzufügen") wie eine normale App ablegen: eigenes Icon,
+eigener Fensterrahmen ohne Browserleiste. Ohne Netz startet die Oberfläche
+weiterhin (Gerüst, Schriften und Icons sind gespeichert) — Bilder kommen
+naturgemäß erst wieder, wenn eine Verbindung da ist.
+
+- `public/manifest.webmanifest` – Name, Farben, Icons.
+- `ngsw-config.json` – was der Angular-Service-Worker speichert: App-Gerüst
+  sofort, Bilder/Schriften bei Bedarf, dazu die Material-Icons von Google.
+  Er läuft nur im Produktions-Build, nicht im Entwicklungs-Server.
+- Icons neu erzeugen: `npm i --no-save sharp && node scripts/gen-icons.mjs`
+  (die Symbolgröße wird nachgemessen: 41,7 % normal, 55 % randlos für Android).
+
 ## Veröffentlichen (GitHub Pages)
 
 Jeder Push auf `main` startet den Workflow

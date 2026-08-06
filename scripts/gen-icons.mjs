@@ -3,13 +3,16 @@
 // mit weichem Schatten (kein harter Versatz, kein langer Diagonalschatten).
 //
 // Ergebnis: public/favicon.svg, public/favicon.ico, public/apple-touch-icon.png
+// und die Icons der installierbaren App (PWA) unter public/icons/:
+// icon-192.png, icon-512.png (normal) sowie icon-maskable-512.png (randlos,
+// Android beschneidet es selbst — deshalb dort ein groesseres Symbol).
 //
 // Braucht sharp – ist absichtlich KEINE Abhaengigkeit des Projekts, damit der
 // Build schlank bleibt. Zum Neuerzeugen einmalig:
 //   npm i --no-save sharp && node scripts/gen-icons.mjs
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -29,6 +32,9 @@ const SHADOW = { r: 0x05, g: 0x07, b: 0x0d }
 // folgt dem Standardmass 41,7 % der anderen Apps.
 const COVERAGE_FAVICON = 0.62
 const COVERAGE_HOMESCREEN = 0.417
+// Randloses Android-Icon: Chrome polstert Maskable-Icons um Faktor 1,31 auf,
+// dargestellt bleiben dadurch wieder dieselben ~41,7 %.
+const COVERAGE_MASKABLE = 0.55
 
 // Lucide "images" (v1.28.0), unveraendert uebernommen
 const ICON_NODES = [
@@ -88,7 +94,8 @@ async function fitSymbol(coverage) {
   return { scale, tx, ty, box: boundsOf(await alphaOf(symbolSvg(scale, tx, ty))) }
 }
 
-const bgSvg = () => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}">
+// rounded=false liefert die randlose Fassung fuer Maskable-Icons.
+const bgSvg = (rounded = true) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="${G_FROM}"/>
@@ -99,8 +106,8 @@ const bgSvg = () => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="${S}" height="${S}" rx="${RAD}" ry="${RAD}" fill="url(#g)"/>
-  <rect width="${S}" height="${S}" rx="${RAD}" ry="${RAD}" fill="url(#h)"/>
+  <rect width="${S}" height="${S}" rx="${rounded ? RAD : 0}" ry="${rounded ? RAD : 0}" fill="url(#g)"/>
+  <rect width="${S}" height="${S}" rx="${rounded ? RAD : 0}" ry="${rounded ? RAD : 0}" fill="url(#h)"/>
 </svg>`)
 
 async function tinted(alpha, opacity) {
@@ -121,7 +128,7 @@ async function shadowLayer(alpha, opacity, sigma, dx, dy) {
     .png().toBuffer()
 }
 
-async function render(coverage) {
+async function render(coverage, rounded = true) {
   const fit = await fitSymbol(coverage)
   const svg = symbolSvg(fit.scale, fit.tx, fit.ty)
   const alpha = await alphaOf(svg)
@@ -131,7 +138,7 @@ async function render(coverage) {
   const ambient = await shadowLayer(alpha, 0.34, 16, 5, 12)
   const contact = await shadowLayer(alpha, 0.30, 4, 0, 4)
 
-  const png = await sharp(await sharp(bgSvg()).png().toBuffer())
+  const png = await sharp(await sharp(bgSvg(rounded)).png().toBuffer())
     .composite([{ input: ambient }, { input: contact }, { input: symbol }])
     .png().toBuffer()
 
@@ -179,6 +186,7 @@ const svgFile = (fit) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $
 
 const tab = await render(COVERAGE_FAVICON)
 const home = await render(COVERAGE_HOMESCREEN)
+const maskable = await render(COVERAGE_MASKABLE, false)
 
 const sizes = [16, 32, 48]
 const scaled = []
@@ -191,7 +199,17 @@ await writeFile(resolve(outDir, 'favicon.svg'), svgFile(tab.fit))
 await writeFile(resolve(outDir, 'apple-touch-icon.png'),
   await sharp(home.png).resize(180, 180).png({ compressionLevel: 9 }).toBuffer())
 
+// Icons der installierbaren App
+await mkdir(resolve(outDir, 'icons'), { recursive: true })
+const savePwa = async (name, png, size) => writeFile(resolve(outDir, 'icons', name),
+  await sharp(png).resize(size, size).png({ compressionLevel: 9 }).toBuffer())
+await savePwa('icon-192.png', home.png, 192)
+await savePwa('icon-512.png', home.png, 512)
+await savePwa('icon-maskable-512.png', maskable.png, 512)
+
 const pct = (b) => (Math.max(b.w, b.h) / S * 100).toFixed(1) + ' %'
 console.log(`favicon.ico   ${sizes.join('/')} px, Symbol ${pct(tab.fit.box)} der Flaeche`)
 console.log(`favicon.svg   skalierbar,        Symbol ${pct(tab.fit.box)} der Flaeche`)
 console.log(`apple-touch-icon.png 180 px,     Symbol ${pct(home.fit.box)} der Flaeche`)
+console.log(`icons/icon-192.png, icon-512.png Symbol ${pct(home.fit.box)} der Flaeche (Soll 41,7 %)`)
+console.log(`icons/icon-maskable-512.png      Symbol ${pct(maskable.fit.box)} der Flaeche (Soll ~55 %)`)

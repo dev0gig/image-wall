@@ -46,7 +46,8 @@
                 }
               ],
               "outputHashing": "all",
-              "baseHref": "/image-wall/"
+              "baseHref": "/image-wall/",
+              "serviceWorker": "ngsw-config.json"
             },
             "development": {
               "optimization": false,
