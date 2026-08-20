@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, signal, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import * as cache from './image-cache';
+import { FavoritenDienst } from './favoriten.service';
+import { Karussell } from './karussell';
+import { dateiNameFuer } from './downloads';
 import {
   INPUT_HELP,
   MIN_EDGE,
@@ -37,19 +39,25 @@ export class App {
   savedChannels = signal<string[]>([]);
   viewingAll = signal(false);
   
-  favorites = signal<ImageItem[]>([]);
+  // Favoriten leben im FavoritenDienst; hier nur die Verweise fuers Template.
+  private fav = inject(FavoritenDienst);
+  favorites = this.fav.favorites;
+  favoritePulse = this.fav.favoritePulse;
+  isDownloadingZip = this.fav.isDownloadingZip;
   viewingFavorites = signal(false);
   
-  // Carousel State
-  carouselOpen = signal(false);
-  carouselIndex = signal(0);
-  private touchStartX = 0;
+  // Das Vollbild-Karussell (karussell.ts); Verweise fuers Template unten.
+  private karussell = new Karussell(
+    () => this.images().length,
+    isPlatformBrowser(inject(PLATFORM_ID)),
+  );
+  carouselOpen = this.karussell.open;
+  carouselIndex = this.karussell.index;
   
   // Seitenleiste als Bottom-Sheet auf schmalen Bildschirmen
   menuOpen = signal(false);
 
   showClearConfirm = signal(false);
-  isDownloadingZip = signal(false);
   showHelp = signal(false);
 
   /**
@@ -59,10 +67,6 @@ export class App {
    */
   flash = signal<string | null>(null);
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
-
-  /** URL des Bildes, dessen Herz gerade huepft (nur beim Hinzufuegen). */
-  favoritePulse = signal<string | null>(null);
-  private pulseTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Sichtbarkeit des Nach-oben-Knopfes. */
   showToTop = signal(false);
@@ -106,13 +110,6 @@ export class App {
         } catch (e) {}
       }
       
-      const storedFavs = localStorage.getItem('x_favorite_images');
-      if (storedFavs) {
-        try {
-          this.favorites.set(JSON.parse(storedFavs));
-        } catch (e) {}
-      }
-
       this.loadSourceStatus();
     }
   }
@@ -326,32 +323,14 @@ export class App {
 
   toggleFavorite(item: ImageItem, event?: Event) {
     if (event) event.stopPropagation();
-    const current = this.favorites();
-    const exists = current.find(f => f.url === item.url);
-    let updated: ImageItem[];
-    
-    if (exists) {
-      updated = current.filter(f => f.url !== item.url);
-    } else {
-      updated = [...current, item];
-      // Herz huepft nur beim Hinzufuegen - beim Entfernen waere das verwirrend.
-      clearTimeout(this.pulseTimer);
-      this.favoritePulse.set(item.url);
-      this.pulseTimer = setTimeout(() => this.favoritePulse.set(null), 400);
-    }
-
-    this.favorites.set(updated);
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('x_favorite_images', JSON.stringify(updated));
-    }
-    
+    this.fav.toggle(item);
     if (this.viewingFavorites()) {
-      this.images.set(updated);
+      this.images.set(this.favorites());
     }
   }
 
   isFavorite(url: string): boolean {
-    return this.favorites().some(f => f.url === url);
+    return this.fav.isFavorite(url);
   }
 
   /**
@@ -378,19 +357,6 @@ export class App {
     if (img.src !== item.url) img.src = item.url;
   }
 
-  /** Dateiname fuer ein heruntergeladenes Bild, z. B. `r_EarthPorn_3.jpg`. */
-  private fileNameFor(item: ImageItem, index: number): string {
-    let ext = 'jpg';
-    if (item.url.toLowerCase().includes('.png')) ext = 'png';
-    if (item.url.toLowerCase().includes('.gif')) ext = 'gif';
-
-    // Kanalnamen enthalten Zeichen, die in Dateinamen nichts verloren haben:
-    // der Schraegstrich in `r/EarthPorn` legt sonst einen Ordner an, der
-    // Doppelpunkt in `bsky:name` ist unter Windows unzulaessig.
-    const name = item.channel.replace(/[^A-Za-z0-9._-]/g, '_');
-    return `${name}_${index}.${ext}`;
-  }
-
   /**
    * Laedt ein einzelnes Bild in voller Aufloesung herunter - also das
    * Original der Quelle, nicht die verkleinerte Fassung aus dem Raster.
@@ -404,7 +370,7 @@ export class App {
       const response = await fetch(toDownloadableUrl(item));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      saveAs(await response.blob(), this.fileNameFor(item, index + 1));
+      saveAs(await response.blob(), dateiNameFuer(item, index + 1));
     } catch {
       this.error.set('Das Bild ließ sich nicht herunterladen. Die Quelle blockt den Zugriff gerade.');
     } finally {
@@ -503,36 +469,21 @@ export class App {
     requestAnimationFrame(schritt);
   }
 
-  // Carousel Logic
+  // Karussell: Logik in karussell.ts, hier nur die Template-Griffe.
   openCarousel(index: number) {
-    this.carouselIndex.set(index);
-    this.carouselOpen.set(true);
-    if (isPlatformBrowser(this.platformId)) {
-      document.body.style.overflow = 'hidden';
-    }
+    this.karussell.oeffne(index);
   }
 
   closeCarousel() {
-    this.carouselOpen.set(false);
-    if (isPlatformBrowser(this.platformId)) {
-      document.body.style.overflow = '';
-    }
+    this.karussell.schliesse();
   }
 
   nextImage(event?: Event) {
-    event?.stopPropagation();
-    const len = this.images().length;
-    if (len > 0) {
-      this.carouselIndex.update(i => (i + 1) % len);
-    }
+    this.karussell.weiter(event);
   }
 
   prevImage(event?: Event) {
-    event?.stopPropagation();
-    const len = this.images().length;
-    if (len > 0) {
-      this.carouselIndex.update(i => (i - 1 + len) % len);
-    }
+    this.karussell.zurueck(event);
   }
 
   handleKeyDown(event: KeyboardEvent) {
@@ -549,19 +500,17 @@ export class App {
   }
 
   onTouchStart(event: TouchEvent) {
-    this.touchStartX = event.changedTouches[0].screenX;
+    this.karussell.beruehrungStart(event);
   }
 
   onTouchEnd(event: TouchEvent) {
-    const touchEndX = event.changedTouches[0].screenX;
-    if (this.touchStartX - touchEndX > 50) this.nextImage();
-    if (touchEndX - this.touchStartX > 50) this.prevImage();
+    this.karussell.beruehrungEnde(event);
   }
 
   // Settings & Data Management
   clearCache() {
     this.savedChannels.set([]);
-    this.favorites.set([]);
+    this.fav.leeren();
     this.images.set([]);
     this.channelName.set('');
     this.viewingAll.set(false);
@@ -569,7 +518,6 @@ export class App {
     
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('x_saved_channels');
-      localStorage.removeItem('x_favorite_images');
       localStorage.removeItem('x_gallery_images');
       cache.clearCache();
     }
@@ -618,36 +566,6 @@ export class App {
   }
 
   async downloadFavoritesZip() {
-    const favs = this.favorites();
-    if (favs.length === 0) return;
-    
-    this.isDownloadingZip.set(true);
-    const zip = new JSZip();
-    let count = 0;
-
-    for (let i = 0; i < favs.length; i++) {
-      const fav = favs[i];
-      try {
-        // Jede Quelle weiss selbst, ueber welche Adresse sich ihre Bilder
-        // per JavaScript laden lassen (X direkt, Reddit ueber weserv).
-        const response = await fetch(toDownloadableUrl(fav));
-        
-        if (response.ok) {
-          zip.file(this.fileNameFor(fav, i + 1), await response.blob());
-          count++;
-        }
-      } catch (e) {
-        console.error(`Failed to download ${fav.url}`, e);
-      }
-    }
-
-    if (count > 0) {
-      const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, 'favorites.zip');
-    } else {
-      this.error.set('Fehler beim Herunterladen der Bilder. CORS Blockade möglich.');
-    }
-    
-    this.isDownloadingZip.set(false);
+    await this.fav.ladeZip(meldung => this.error.set(meldung));
   }
 }
