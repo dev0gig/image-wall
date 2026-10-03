@@ -7,8 +7,8 @@
  * Reddits eigener Feed liefert bis zu 100 - dieser Vermittler holt ihn selbst
  * und reicht nur noch die reinen Bild-Adressen weiter.
  *
- * Aufruf:  /reddit?sub=EarthPorn&limit=50
- * Antwort: {"subreddit":"EarthPorn","images":[{"url":"https://i.redd.it/..."}]}
+ * Aufruf:  /reddit?sub=itookapicture&limit=50
+ * Antwort: {"subreddit":"itookapicture","images":[{"url":"https://i.redd.it/..."}]}
  */
 
 const DEFAULT_LIMIT = 50;
@@ -155,7 +155,7 @@ export default {
     // untergeschoben bekommt.
     const sub = (url.searchParams.get('sub') || '').replace(/[^A-Za-z0-9_]/g, '');
     if (!sub) {
-      return json({ error: 'Kein Subreddit angegeben (?sub=EarthPorn).' }, 400, cors);
+      return json({ error: 'Kein Subreddit angegeben (?sub=itookapicture).' }, 400, cors);
     }
 
     const wanted = Number(url.searchParams.get('limit')) || DEFAULT_LIMIT;

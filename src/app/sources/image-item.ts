@@ -38,7 +38,7 @@ export interface ImageItem {
    */
   preview?: string;
 
-  /** Gespeicherter Kanalname: `r/EarthPorn`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
+  /** Gespeicherter Kanalname: `r/itookapicture`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
   channel: string;
 }
 

@@ -25,7 +25,7 @@ const MAX_IMAGES = 100;
 const PREVIEW_WIDTH = 700;
 
 /** Grosses, immer gefuelltes Subreddit - nur fuer die Erreichbarkeitspruefung. */
-const PROBE = 'EarthPorn';
+const PROBE = 'itookapicture';
 
 /** Reddit liefert den ersten Abruf eines Feeds oft nicht - dann nochmal fragen. */
 const ATTEMPTS = 3;

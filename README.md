@@ -11,7 +11,9 @@ Eingabe (alles im selben Feld):
 |---|---|
 | Bluesky | `esa.int`, `jemand.bsky.social`, `bsky.app/profile/…` |
 | Mastodon | `@eff@mastodon.social`, `https://server.tld/@name` |
-| Reddit | `r/EarthPorn`, Subreddit-URL |
+| Reddit | `r/itookapicture`, Subreddit-URL |
+
+Enter im leeren Eingabefeld lädt `r/itookapicture` als Standard.
 
 Woran die App die Quelle erkennt: Eine Mastodon-Adresse hat zwei Teile mit `@`
 dazwischen, ein Bluesky-Handle ist eine Adresse mit Punkt, ein Subreddit

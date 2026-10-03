@@ -15,11 +15,11 @@ Doppelte raus.
 ## Aufruf
 
 ```
-GET /reddit?sub=EarthPorn&limit=50
+GET /reddit?sub=itookapicture&limit=50
 ```
 
 ```json
-{ "subreddit": "EarthPorn", "count": 50, "images": [{ "url": "https://i.redd.it/…" }] }
+{ "subreddit": "itookapicture", "count": 50, "images": [{ "url": "https://i.redd.it/…" }] }
 ```
 
 Antwortet auf alle Pfade; nur `sub` zählt. Fehler kommen als HTTP 400 (kein

@@ -150,7 +150,7 @@ export class App {
     }
   }
 
-  /** Anzeigetext eines Kanals, z. B. `@ArchDigest` oder `r/EarthPorn`. */
+  /** Anzeigetext eines Kanals, z. B. `@ArchDigest` oder `r/itookapicture`. */
   channelLabel(channel: string): string {
     return channelLabel(channel);
   }
@@ -380,7 +380,7 @@ export class App {
 
   async loadImages() {
     // Enter im leeren Feld zeigt etwas Ansehnliches statt einer Fehlermeldung.
-    const input = this.channelName().trim() || 'r/EarthPorn';
+    const input = this.channelName().trim() || 'r/itookapicture';
     // Eingabe aufraeumen: r/Subreddit, Bluesky-Handle, @name@server oder URL
     const channel = normalizeChannel(input);
 

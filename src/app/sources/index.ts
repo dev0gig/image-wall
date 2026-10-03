@@ -35,7 +35,7 @@ export function sourceForChannel(channel: string): SourceAdapter | null {
 
 /** Erklaert in einem Satz, was die Seite ueberhaupt annimmt. */
 export const INPUT_HELP =
-  'Das konnte ich keiner Quelle zuordnen. Erlaubt sind: ein Subreddit (r/EarthPorn), ' +
+  'Das konnte ich keiner Quelle zuordnen. Erlaubt sind: ein Subreddit (r/itookapicture), ' +
   'ein Bluesky-Konto (esa.int) oder ein Mastodon-Konto (@eff@mastodon.social).';
 
 /** Eingabe -> gespeicherter Kanalname, oder '' wenn nichts passt. */
@@ -43,7 +43,7 @@ export function normalizeChannel(input: string): string {
   return sourceForInput(input)?.normalize(input) ?? '';
 }
 
-/** Gespeicherter Kanalname -> Anzeigetext (`r/EarthPorn`, `@esa.int`). */
+/** Gespeicherter Kanalname -> Anzeigetext (`r/itookapicture`, `@esa.int`). */
 export function channelLabel(channel: string): string {
   return sourceForChannel(channel)?.label(channel) ?? channel;
 }
