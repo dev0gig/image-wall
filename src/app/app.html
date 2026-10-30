@@ -72,7 +72,7 @@
           </button>
         } @else {
           <div class="relative flex flex-col flex-1 lg:flex-none min-w-0">
-            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit, Bluesky or Mastodon</label>
+            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit, Bluesky, Mastodon or Pinterest</label>
             <input
               id="channel-input"
               type="text"
@@ -405,10 +405,11 @@
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Supported Sources</h4>
             <p>
-              This tool supports <strong>Bluesky</strong> and <strong>Mastodon</strong> accounts and <strong>Reddit</strong> subreddits.
+              This tool supports <strong>Bluesky</strong> and <strong>Mastodon</strong> accounts, <strong>Reddit</strong> subreddits and <strong>Pinterest</strong> accounts and boards.
               For Bluesky, type the handle (e.g. <code>esa.int</code>, <code>someone.bsky.social</code>) or paste the profile URL.
               For Mastodon, type the full address (e.g. <code>&#64;eff&#64;mastodon.social</code>) or paste the profile URL.
               For Reddit, type <code>r/itookapicture</code> or paste the subreddit URL.
+              For Pinterest, paste the address of an account or board (e.g. <code>pinterest.com/name/board</code>).
               <strong>X (Twitter) is no longer supported</strong> — it could only be read through public Nitter mirrors, and none of them work any more.
             </p>
           </section>
@@ -418,6 +419,7 @@
             <p>
               <strong>Bluesky</strong> and <strong>Mastodon</strong> deliver up to <strong>100 images</strong> per account &mdash; both are queried directly by your browser, no relay in between.
               <strong>Reddit</strong> delivers up to <strong>100 images per subreddit</strong> through its own relay (see <code>worker/</code>); if that relay is unavailable, the app falls back to the free feed service and 10 images.
+              <strong>Pinterest</strong> delivers the latest <strong>25 images</strong> per account or board through the same relay, with the same fallback. Its feed offers no way to go further back.
             </p>
           </section>
 

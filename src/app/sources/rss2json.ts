@@ -2,12 +2,12 @@
  * Kleiner Helfer um api.rss2json.com.
  *
  * Der Dienst liest einen RSS-/Atom-Feed und gibt ihn als JSON zurueck. Wir
- * brauchen ihn, weil weder Nitter noch Reddit ihre Feeds direkt an eine
+ * brauchen ihn, weil weder Reddit noch Pinterest ihre Feeds direkt an eine
  * Web-App herausgeben (fehlender CORS-Header).
  *
  * Achtung: ohne API-Schluessel liefert rss2json hoechstens 10 Eintraege pro
- * Feed. Bei X macht das nichts (ein Beitrag kann mehrere Bilder haben), bei
- * Reddit begrenzt es die Ausbeute auf 10 Bilder pro Subreddit.
+ * Feed. Bei Reddit und Pinterest begrenzt das die Ausbeute auf 10 Bilder
+ * pro Kanal.
  */
 
 export interface FeedItem {

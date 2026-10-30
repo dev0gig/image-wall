@@ -381,7 +381,7 @@ export class App {
   async loadImages() {
     // Enter im leeren Feld zeigt etwas Ansehnliches statt einer Fehlermeldung.
     const input = this.channelName().trim() || 'r/itookapicture';
-    // Eingabe aufraeumen: r/Subreddit, Bluesky-Handle, @name@server oder URL
+    // Eingabe aufraeumen: r/Subreddit, Bluesky-Handle, @name@server, Pinterest-Adresse oder URL
     const channel = normalizeChannel(input);
 
     if (!channel) {

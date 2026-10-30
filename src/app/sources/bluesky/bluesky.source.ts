@@ -113,6 +113,7 @@ export const blueskySource: SourceAdapter = {
 
     // Profil-URLs anderer Dienste gehoeren deren Quellen.
     if (/(x|twitter)\.com\//i.test(trimmed) || /reddit\.com\//i.test(trimmed)) return false;
+    if (/pinterest\.[a-z.]+\//i.test(trimmed) || /^(https?:\/\/)?pin\.it\//i.test(trimmed)) return false;
 
     // Ein X-Handle wie `ArchDigest` hat keinen Punkt, ein Bluesky-Handle immer.
     return HANDLE.test(trimmed.replace(/^@/, ''));
