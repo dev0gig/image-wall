@@ -1,7 +1,7 @@
 # Image Wall
 
 Eine Ein-Seiten-Web-App (Angular 21), die Bilder als Raster anzeigt – aus
-Bluesky- und Mastodon-Konten, Reddit-Subreddits und Pinterest-Konten oder -Pinnwände.
+Bluesky- und Mastodon-Konten und Reddit-Subreddits.
 Favoriten, gespeicherte Quellen und die Galerie liegen im Browser
 (localStorage) – es gibt keine Datenbank und keinen Login.
 
@@ -12,14 +12,12 @@ Eingabe (alles im selben Feld):
 | Bluesky | `esa.int`, `jemand.bsky.social`, `bsky.app/profile/…` |
 | Mastodon | `@eff@mastodon.social`, `https://server.tld/@name` |
 | Reddit | `r/itookapicture`, Subreddit-URL |
-| Pinterest | `pinterest.com/name`, `pinterest.com/name/pinnwand` |
 
 Enter im leeren Eingabefeld lädt `r/itookapicture` als Standard.
 
 Woran die App die Quelle erkennt: Eine Mastodon-Adresse hat zwei Teile mit `@`
 dazwischen, ein Bluesky-Handle ist eine Adresse mit Punkt, ein Subreddit
-beginnt mit `r/`, eine Pinterest-Eingabe ist die Adresse eines Kontos oder einer
-Pinnwand. Die Adresse eines einzelnen Pins und Kurzlinks (`pin.it/…`) gehen nicht. Passt eine Eingabe zu keiner Quelle, sagt die App das.
+beginnt mit `r/`. Passt eine Eingabe zu keiner Quelle, sagt die App das.
 
 **X (Twitter) wird nicht mehr unterstützt.** X war nur über öffentliche
 Nitter-Spiegel lesbar, und davon funktioniert keiner mehr – die Quelle ist
@@ -117,12 +115,11 @@ einen Eintrag in `SOURCES`.
 ```
 src/app/sources/
   image-item.ts        gemeinsame Typen (ImageItem, SourceAdapter), Größenfilter
-  rss2json.ts          Helfer für api.rss2json.com (Notausgang für Reddit und Pinterest)
+  rss2json.ts          Helfer für api.rss2json.com (nur noch Reddits Notausgang)
   index.ts             Verzeichnis aller Quellen
   bluesky/bluesky.source.ts Bluesky, direkt aus dem Browser
   mastodon/mastodon.source.ts Mastodon, direkt aus dem Browser
   reddit/reddit.source.ts   Reddit über den eigenen Vermittler (worker/)
-  pinterest/pinterest.source.ts Pinterest über denselben Vermittler
 ```
 
 ## Hinweise
@@ -147,18 +144,10 @@ src/app/sources/
   dann sind es 10 Bilder, weil der Dienst ohne API-Schlüssel nur 10 Beiträge
   herausgibt. Reddits eigene JSON-API (`/r/<sub>/hot.json`) scheidet aus: 403
   ohne Anmeldung und kein CORS-Header.
-- **Pinterest:** die neuesten 25 Bilder pro Konto oder Pinnwand über denselben
-  Vermittler, ohne Anmeldung. Mehr gibt es nicht: Der Feed kennt kein
-  Weiterblättern, die interne Schnittstelle antwortet mit 403, und die offizielle
-  API verlangt eine Anmeldung samt App-Prüfung. Der Feed nennt nur die
-  236-px-Fassung und immer `.jpg`, das Original kann aber auch PNG, WebP oder GIF
-  sein. Deshalb fragt der Vermittler nach der richtigen Endung; das Raster zeigt
-  die 736-px-Fassung. Im Notausgang über `rss2json` sind es 10 Bilder und statt
-  der Originale die 1200-px-Fassung.
 - Reddit liefert im Feed nur ein kleines Vorschaubild. Da
   `preview.redd.it/<id>.jpg` und `i.redd.it/<id>.jpg` dieselbe Datei sind,
   rechnet die App die Adresse auf das Original um.
 - Der Download (einzelnes Bild wie auch Favoriten-ZIP) holt immer das
-  Original. Reddit, Bluesky und Pinterest verbieten das Laden per JavaScript auf ihren
+  Original. Reddit und Bluesky verbieten das Laden per JavaScript auf ihren
   Bild-Servern, deshalb laufen deren Bilder dafür über den Bild-Weiterleiter
   `images.weserv.nl`; Mastodon erlaubt es direkt.

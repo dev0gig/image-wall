@@ -1,18 +1,14 @@
 /**
- * Vermittler für Reddit- und Pinterest-Bilder (Cloudflare Worker).
+ * Vermittler für Reddit-Bilder (Cloudflare Worker).
  *
  * Warum es den gibt: Ein Browser darf Reddit nicht direkt fragen (Reddit
  * erlaubt fremden Seiten den Zugriff nicht). Der bisherige Ausweg lief über
  * den Gratis-Dienst rss2json, und der gibt nur 10 Beiträge pro Feed heraus.
  * Reddits eigener Feed liefert bis zu 100 - dieser Vermittler holt ihn selbst
- * und reicht nur noch die reinen Bild-Adressen weiter. Für Pinterest gilt
- * dasselbe, dort sind es 25.
+ * und reicht nur noch die reinen Bild-Adressen weiter.
  *
  * Aufruf:  /reddit?sub=itookapicture&limit=50
  * Antwort: {"subreddit":"itookapicture","images":[{"url":"https://i.redd.it/..."}]}
- *
- * Aufruf:  /pinterest?user=name&board=pinnwand   (board ist freiwillig)
- * Antwort: {"user":"name","board":"pinnwand","images":[{"url":"https://i.pinimg.com/originals/...","preview":"https://i.pinimg.com/736x/..."}]}
  */
 
 const DEFAULT_LIMIT = 50;
@@ -132,101 +128,6 @@ function extractImages(xml) {
   return images;
 }
 
-/** Cloudflare erlaubt im Gratis-Tarif 50 Abrufe pro Anfrage. */
-const MAX_SUBREQUESTS = 50;
-
-/** Endungen, unter denen Pinterest ein Original ablegt, wenn es kein `.jpg` ist. */
-const OTHER_EXTENSIONS = ['png', 'webp', 'gif'];
-
-async function exists(url) {
-  try {
-    const response = await fetch(url, {
-      method: 'HEAD',
-      cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true }
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/** Aus dem Feed die Bildpfade ziehen (`9a/95/b6/<id>`, ohne Größe und Endung). */
-function extractPinterestPaths(xml) {
-  const paths = new Set();
-
-  for (const raw of xml.split('<item>').slice(1)) {
-    const match = unescapeXml(raw).match(/<img[^>]+src="https:\/\/i\.pinimg\.com\/[^/"]+\/([^"]+)\.[a-z]+"/i);
-    if (match) paths.add(match[1]);
-  }
-
-  return [...paths];
-}
-
-/**
- * Der Feed nennt nur die 236-px-Fassung und immer `.jpg`, das Original kann
- * aber auch ein PNG, WebP oder GIF sein - das verrät nur die Nachfrage. Reicht
- * das Abrufkontingent nicht, tut es die 1200-px-Fassung, die es immer gibt.
- */
-async function findOriginals(paths) {
-  const isJpg = await Promise.all(paths.map(path => exists(`https://i.pinimg.com/originals/${path}.jpg`)));
-  let budget = MAX_SUBREQUESTS - 1 - paths.length;
-
-  const images = [];
-  for (const [index, path] of paths.entries()) {
-    let url = isJpg[index] ? `https://i.pinimg.com/originals/${path}.jpg` : null;
-
-    for (const extension of OTHER_EXTENSIONS) {
-      if (url || budget <= 0) break;
-      budget -= 1;
-      const candidate = `https://i.pinimg.com/originals/${path}.${extension}`;
-      if (await exists(candidate)) url = candidate;
-    }
-
-    images.push({
-      url: url ?? `https://i.pinimg.com/1200x/${path}.jpg`,
-      preview: `https://i.pinimg.com/736x/${path}.jpg`
-    });
-  }
-
-  return images;
-}
-
-async function handlePinterest(url, cors) {
-  // Wie beim Subreddit: Nur diese Zeichen kommen in die Adresse, damit hier
-  // niemand eine andere unterschieben kann.
-  const user = (url.searchParams.get('user') || '').replace(/[^A-Za-z0-9_-]/g, '');
-  const board = (url.searchParams.get('board') || '').replace(/[^\p{L}\p{N}_-]/gu, '');
-  if (!user) {
-    return json({ error: 'Kein Konto angegeben (?user=name).' }, 400, cors);
-  }
-
-  let response;
-  try {
-    response = await fetch(`https://www.pinterest.com/${user}/${board ? encodeURIComponent(board) : 'feed'}.rss`, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, text/xml' },
-      cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true }
-    });
-  } catch {
-    return json({ error: 'Pinterest war nicht erreichbar.' }, 502, cors);
-  }
-
-  if (!response.ok) {
-    return json(
-      { error: `Pinterest antwortet mit ${response.status}.`, status: response.status },
-      502,
-      cors
-    );
-  }
-
-  const xml = await response.text();
-  if (!xml.includes('<rss')) {
-    return json({ error: 'Pinterest hat keinen Feed geliefert.' }, 502, cors);
-  }
-
-  const images = await findOriginals(extractPinterestPaths(xml));
-  return json({ user, board, count: images.length, images }, 200, cors);
-}
-
 export default {
   async fetch(request) {
     const cors = corsFor(request.headers.get('Origin'));
@@ -248,10 +149,6 @@ export default {
     }
 
     const url = new URL(request.url);
-
-    if (url.pathname === '/pinterest') {
-      return handlePinterest(url, cors);
-    }
 
     // Subreddit-Namen bestehen nur aus Buchstaben, Ziffern und Unterstrich -
     // alles andere fliegt raus, damit hier niemand eine andere Adresse

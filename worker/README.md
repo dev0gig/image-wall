@@ -1,6 +1,6 @@
-# Reddit- und Pinterest-Vermittler (Cloudflare Worker)
+# Reddit-Vermittler (Cloudflare Worker)
 
-Ein winziges Programm, das zwischen der Seite und Reddit bzw. Pinterest sitzt.
+Ein winziges Programm, das zwischen der Seite und Reddit sitzt.
 
 **Wozu?** Der Browser darf Reddit nicht direkt fragen. Der bisherige Umweg lief
 über den Gratis-Dienst `rss2json`, und der gibt nur **10 Beiträge** pro Feed
@@ -22,23 +22,9 @@ GET /reddit?sub=itookapicture&limit=50
 { "subreddit": "itookapicture", "count": 50, "images": [{ "url": "https://i.redd.it/…" }] }
 ```
 
-```
-GET /pinterest?user=name&board=pinnwand
-```
-
-```json
-{ "user": "name", "board": "pinnwand", "count": 25, "images": [{ "url": "https://i.pinimg.com/originals/…", "preview": "https://i.pinimg.com/736x/…" }] }
-```
-
-`board` ist freiwillig; ohne kommt der Feed des ganzen Kontos. Pinterests Feed
-nennt nur die 236-px-Fassung und immer `.jpg`. Der Vermittler prüft deshalb, unter
-welcher Endung das Original liegt. Das kostet Abrufe, und der Gratis-Tarif erlaubt
-50 pro Anfrage: Reicht das nicht, kommt die 1200-px-Fassung statt des Originals.
-
-`/pinterest` ist der einzige eigene Pfad, alle übrigen meinen Reddit und nur `sub`
-zählt. Fehler kommen als HTTP 400 (kein
-Subreddit bzw. Konto), 403 (Anfrage kam nicht von image-wall, siehe unten) oder
-502 (Reddit bzw. Pinterest hat nicht geliefert).
+Antwortet auf alle Pfade; nur `sub` zählt. Fehler kommen als HTTP 400 (kein
+Subreddit), 403 (Anfrage kam nicht von image-wall, siehe unten) oder 502
+(Reddit hat nicht geliefert).
 
 ## Deployen
 

@@ -9,7 +9,7 @@
  *   - wie bekomme ich ein Bild per JavaScript herunter (fuer das ZIP)?
  */
 
-export type SourceId = 'reddit' | 'bluesky' | 'mastodon' | 'pinterest';
+export type SourceId = 'reddit' | 'bluesky' | 'mastodon';
 
 /**
  * Bilder unter dieser Kantenlaenge sind Symbole, Logos oder Briefmarken und
@@ -38,7 +38,7 @@ export interface ImageItem {
    */
   preview?: string;
 
-  /** Gespeicherter Kanalname: `r/itookapicture`, `bsky:esa.int`, `mastodon:eff@mastodon.social`, `pin:name/pinnwand`. */
+  /** Gespeicherter Kanalname: `r/itookapicture`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
   channel: string;
 }
 

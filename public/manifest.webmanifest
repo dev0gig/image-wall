@@ -1,7 +1,7 @@
 {
   "name": "Image Wall",
   "short_name": "Image Wall",
-  "description": "Bilder aus Bluesky, Mastodon, Reddit und Pinterest als Raster — alles bleibt im Browser.",
+  "description": "Bilder aus Bluesky, Mastodon und Reddit als Raster — alles bleibt im Browser.",
   "start_url": "./",
   "scope": "./",
   "id": "./",

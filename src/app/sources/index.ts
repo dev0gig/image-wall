@@ -10,12 +10,11 @@
 import { blueskySource } from './bluesky/bluesky.source';
 import { ImageItem, SourceAdapter } from './image-item';
 import { mastodonSource } from './mastodon/mastodon.source';
-import { pinterestSource } from './pinterest/pinterest.source';
 import { redditSource } from './reddit/reddit.source';
 
 export { MIN_EDGE, isBigEnough, type ImageItem, type SourceAdapter, type SourceId } from './image-item';
 
-export const SOURCES: readonly SourceAdapter[] = [redditSource, pinterestSource, mastodonSource, blueskySource];
+export const SOURCES: readonly SourceAdapter[] = [redditSource, mastodonSource, blueskySource];
 
 /**
  * Welche Quelle ist gemeint, wenn der Nutzer `input` eintippt? `null`, wenn
@@ -37,8 +36,7 @@ export function sourceForChannel(channel: string): SourceAdapter | null {
 /** Erklaert in einem Satz, was die Seite ueberhaupt annimmt. */
 export const INPUT_HELP =
   'Das konnte ich keiner Quelle zuordnen. Erlaubt sind: ein Subreddit (r/itookapicture), ' +
-  'ein Bluesky-Konto (esa.int), ein Mastodon-Konto (@eff@mastodon.social) ' +
-  'oder die Adresse eines Pinterest-Kontos bzw. einer Pinnwand (pinterest.com/name/pinnwand).';
+  'ein Bluesky-Konto (esa.int) oder ein Mastodon-Konto (@eff@mastodon.social).';
 
 /** Eingabe -> gespeicherter Kanalname, oder '' wenn nichts passt. */
 export function normalizeChannel(input: string): string {

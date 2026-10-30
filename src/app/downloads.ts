@@ -5,7 +5,6 @@ export function dateiNameFuer(item: ImageItem, index: number): string {
   let ext = 'jpg';
   if (item.url.toLowerCase().includes('.png')) ext = 'png';
   if (item.url.toLowerCase().includes('.gif')) ext = 'gif';
-  if (item.url.toLowerCase().includes('.webp')) ext = 'webp';
 
   // Kanalnamen enthalten Zeichen, die in Dateinamen nichts verloren haben:
   // der Schraegstrich in `r/itookapicture` legt sonst einen Ordner an, der
