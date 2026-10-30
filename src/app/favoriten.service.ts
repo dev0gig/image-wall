@@ -79,7 +79,7 @@ export class FavoritenDienst {
       const fav = favs[i];
       try {
         // Jede Quelle weiss selbst, ueber welche Adresse sich ihre Bilder
-        // per JavaScript laden lassen (X direkt, Reddit ueber weserv).
+        // per JavaScript laden lassen (Reddit ueber weserv).
         const response = await fetch(toDownloadableUrl(fav));
 
         if (response.ok) {

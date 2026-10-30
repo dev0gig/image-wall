@@ -8,7 +8,7 @@ export function dateiNameFuer(item: ImageItem, index: number): string {
 
   // Kanalnamen enthalten Zeichen, die in Dateinamen nichts verloren haben:
   // der Schraegstrich in `r/itookapicture` legt sonst einen Ordner an, der
-  // Doppelpunkt in `bsky:name` ist unter Windows unzulaessig.
+  // Doppelpunkt in alten Favoriten wie `bsky:name` ist unter Windows unzulaessig.
   const name = item.channel.replace(/[^A-Za-z0-9._-]/g, '_');
   return `${name}_${index}.${ext}`;
 }

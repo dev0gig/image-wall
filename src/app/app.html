@@ -72,14 +72,14 @@
           </button>
         } @else {
           <div class="relative flex flex-col flex-1 lg:flex-none min-w-0">
-            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit, Bluesky or Mastodon</label>
+            <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit</label>
             <input
               id="channel-input"
               type="text"
               [value]="channelName()"
               (input)="updateChannelName($event)"
               (keyup.enter)="loadImages()"
-              placeholder="r/itookapicture, esa.int, &#64;eff&#64;mastodon.social"
+              placeholder="r/itookapicture"
               class="bg-transparent border-b border-white/30 px-0 py-1 text-sm focus:outline-none focus:border-white transition-colors w-full lg:w-48 placeholder-white/20"
             />
           </div>
@@ -405,10 +405,8 @@
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Supported Sources</h4>
             <p>
-              This tool supports <strong>Bluesky</strong> and <strong>Mastodon</strong> accounts and <strong>Reddit</strong> subreddits.
-              For Bluesky, type the handle (e.g. <code>esa.int</code>, <code>someone.bsky.social</code>) or paste the profile URL.
-              For Mastodon, type the full address (e.g. <code>&#64;eff&#64;mastodon.social</code>) or paste the profile URL.
-              For Reddit, type <code>r/itookapicture</code> or paste the subreddit URL.
+              This tool shows <strong>Reddit</strong> subreddits.
+              Type <code>r/itookapicture</code> or paste the subreddit URL.
               <strong>X (Twitter) is no longer supported</strong> — it could only be read through public Nitter mirrors, and none of them work any more.
             </p>
           </section>
@@ -416,7 +414,6 @@
           <section>
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Limits</h4>
             <p>
-              <strong>Bluesky</strong> and <strong>Mastodon</strong> deliver up to <strong>100 images</strong> per account &mdash; both are queried directly by your browser, no relay in between.
               <strong>Reddit</strong> delivers up to <strong>100 images per subreddit</strong> through its own relay (see <code>worker/</code>); if that relay is unavailable, the app falls back to the free feed service and 10 images.
             </p>
           </section>
@@ -441,15 +438,13 @@
             <p>
               <strong>Small images are filtered out.</strong> Anything whose longest edge is under
               <strong>400 pixels</strong> never reaches the wall &mdash; those are icons, logos and thumbnails,
-              not photos. Bluesky and Mastodon report the dimensions up front, so those are dropped before
-              they are even loaded; Reddit does not, so they are removed the moment they arrive.
+              not photos. Reddit does not report the dimensions up front, so they are removed the moment they arrive.
             </p>
             <p class="mt-3">
               <strong>Large images are scaled down to 700 pixels wide</strong> for the grid &mdash; height follows
               along, nothing is cropped. A grid column is only about 270 pixels wide, so a 4000 pixel original
               would be pure waste: Reddit images average around <strong>915 KB</strong> at full size and
-              <strong>95 KB</strong> scaled. Bluesky and Mastodon supply their own scaled versions;
-              Reddit images go through the image relay <code>images.weserv.nl</code>.
+              <strong>95 KB</strong> scaled. They go through the image relay <code>images.weserv.nl</code>.
             </p>
             <p class="mt-3">
               <strong>The full-size original is always kept.</strong> The lightbox, the download button on every
@@ -463,7 +458,7 @@
               Click the heart icon on any image to save it to your Favorites, or the download icon next to it
               to save that single image in full resolution.
               In the Favorites view, you can download all your curated images as a single <strong>ZIP archive</strong>.
-              Reddit and Bluesky images are routed through the image relay <code>images.weserv.nl</code> for this, because their own servers refuse downloads made by JavaScript. Mastodon servers allow it directly.
+              Images are routed through the image relay <code>images.weserv.nl</code> for this, because Reddit's servers refuse downloads made by JavaScript.
             </p>
           </section>
 

@@ -10,6 +10,7 @@ import {
   INPUT_HELP,
   MIN_EDGE,
   channelLabel,
+  sourceForChannel,
   checkAllSources,
   fetchChannelImages,
   normalizeChannel,
@@ -99,14 +100,15 @@ export class App {
       const storedImages = localStorage.getItem('x_gallery_images');
       if (storedImages) {
         try {
-          this.images.set(JSON.parse(storedImages));
+          this.images.set((JSON.parse(storedImages) as ImageItem[]).filter(item => sourceForChannel(item.channel)));
         } catch (e) {}
       }
       
       const storedChannels = localStorage.getItem('x_saved_channels');
       if (storedChannels) {
         try {
-          this.savedChannels.set(JSON.parse(storedChannels));
+          // Kanaele entfernter Quellen (Bluesky, Mastodon) tauchen nicht mehr auf.
+          this.savedChannels.set((JSON.parse(storedChannels) as string[]).filter(sourceForChannel));
         } catch (e) {}
       }
       
@@ -278,8 +280,8 @@ export class App {
 
   /**
    * Arbeitet die Liste ab, aber hoechstens `limit` Stueck gleichzeitig.
-   * Alle 20 auf einmal loszuschicken wuerde Mastodon-Server und den eigenen
-   * Reddit-Vermittler unnoetig bedraengen.
+   * Alle 20 auf einmal loszuschicken wuerde den eigenen Reddit-Vermittler
+   * unnoetig bedraengen.
    */
   private async inParallel<T>(items: readonly T[], limit: number, work: (item: T) => Promise<void>) {
     let next = 0;
@@ -334,9 +336,8 @@ export class App {
   }
 
   /**
-   * Letztes Netz gegen Briefmarken: Bluesky und Mastodon nennen die Bildmasse
-   * vorab, Reddit nicht. Was hier trotzdem zu klein ankommt, verschwindet
-   * still aus dem Raster. In den Favoriten wird nichts entfernt - die hat
+   * Netz gegen Briefmarken: Reddit nennt die Bildmasse nicht vorab. Was zu
+   * klein ankommt, verschwindet still aus dem Raster. In den Favoriten wird nichts entfernt - die hat
    * jemand bewusst gespeichert.
    */
   onImageLoaded(item: ImageItem, event: Event) {
@@ -381,7 +382,7 @@ export class App {
   async loadImages() {
     // Enter im leeren Feld zeigt etwas Ansehnliches statt einer Fehlermeldung.
     const input = this.channelName().trim() || 'r/itookapicture';
-    // Eingabe aufraeumen: r/Subreddit, Bluesky-Handle, @name@server oder URL
+    // Eingabe aufraeumen: r/Subreddit oder URL
     const channel = normalizeChannel(input);
 
     if (!channel) {
@@ -549,7 +550,7 @@ export class App {
           if (Array.isArray(parsed)) {
             // merge with existing, or replace. Let's merge and deduplicate
             const current = this.savedChannels();
-            const merged = Array.from(new Set([...current, ...parsed]));
+            const merged = Array.from(new Set([...current, ...parsed.filter(sourceForChannel)]));
             this.savedChannels.set(merged);
             if (isPlatformBrowser(this.platformId)) {
               localStorage.setItem('x_saved_channels', JSON.stringify(merged));

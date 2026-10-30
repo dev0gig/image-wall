@@ -2,19 +2,17 @@
  * Verzeichnis aller Bild-Quellen.
  *
  * Die Oberflaeche spricht nur mit den Funktionen hier unten und muss nicht
- * wissen, ob ein Kanal von Reddit, Bluesky oder Mastodon kommt. Eine neue
- * Quelle braucht nur einen eigenen Unterordner mit ihrem Adapter und einen
- * Eintrag in `SOURCES`.
+ * wissen, woher ein Kanal kommt. Derzeit gibt es nur Reddit. Eine neue Quelle
+ * braucht nur einen eigenen Unterordner mit ihrem Adapter und einen Eintrag in
+ * `SOURCES`.
  */
 
-import { blueskySource } from './bluesky/bluesky.source';
 import { ImageItem, SourceAdapter } from './image-item';
-import { mastodonSource } from './mastodon/mastodon.source';
 import { redditSource } from './reddit/reddit.source';
 
-export { MIN_EDGE, isBigEnough, type ImageItem, type SourceAdapter, type SourceId } from './image-item';
+export { MIN_EDGE, type ImageItem, type SourceAdapter, type SourceId } from './image-item';
 
-export const SOURCES: readonly SourceAdapter[] = [redditSource, mastodonSource, blueskySource];
+export const SOURCES: readonly SourceAdapter[] = [redditSource];
 
 /**
  * Welche Quelle ist gemeint, wenn der Nutzer `input` eintippt? `null`, wenn
@@ -27,7 +25,7 @@ export function sourceForInput(input: string): SourceAdapter | null {
 
 /**
  * Zu welcher Quelle gehoert ein gespeicherter Kanalname? `null` z. B. bei
- * alten X-Eintraegen, die noch in der gespeicherten Liste stehen koennen.
+ * alten Eintraegen von X, Bluesky oder Mastodon.
  */
 export function sourceForChannel(channel: string): SourceAdapter | null {
   return SOURCES.find(source => source.owns(channel)) ?? null;
@@ -35,15 +33,14 @@ export function sourceForChannel(channel: string): SourceAdapter | null {
 
 /** Erklaert in einem Satz, was die Seite ueberhaupt annimmt. */
 export const INPUT_HELP =
-  'Das konnte ich keiner Quelle zuordnen. Erlaubt sind: ein Subreddit (r/itookapicture), ' +
-  'ein Bluesky-Konto (esa.int) oder ein Mastodon-Konto (@eff@mastodon.social).';
+  'Das konnte ich nicht zuordnen. Erlaubt ist ein Subreddit (r/itookapicture) oder seine Adresse.';
 
 /** Eingabe -> gespeicherter Kanalname, oder '' wenn nichts passt. */
 export function normalizeChannel(input: string): string {
   return sourceForInput(input)?.normalize(input) ?? '';
 }
 
-/** Gespeicherter Kanalname -> Anzeigetext (`r/itookapicture`, `@esa.int`). */
+/** Gespeicherter Kanalname -> Anzeigetext (`r/itookapicture`). */
 export function channelLabel(channel: string): string {
   return sourceForChannel(channel)?.label(channel) ?? channel;
 }
@@ -58,7 +55,9 @@ export function fetchChannelImages(channel: string): Promise<ImageItem[]> {
 
 /** Bild-URL eines Favoriten -> per JavaScript ladbare URL (fuer das ZIP). */
 export function toDownloadableUrl(item: ImageItem): string {
-  return sourceForChannel(item.channel)?.toDownloadableUrl(item.url) ?? item.url;
+  // Favoriten entfernter Quellen bleiben erhalten; der Weiterleiter von Reddit
+  // holt auch deren Bilder, Bluesky etwa verbietet das Laden per JavaScript.
+  return (sourceForChannel(item.channel) ?? redditSource).toDownloadableUrl(item.url);
 }
 
 /** Erreichbarkeit einer Quelle, wie sie in der Fussleiste steht. */

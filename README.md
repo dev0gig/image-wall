@@ -1,7 +1,7 @@
 # Image Wall
 
 Eine Ein-Seiten-Web-App (Angular 21), die Bilder als Raster anzeigt – aus
-Bluesky- und Mastodon-Konten und Reddit-Subreddits.
+Reddit-Subreddits.
 Favoriten, gespeicherte Quellen und die Galerie liegen im Browser
 (localStorage) – es gibt keine Datenbank und keinen Login.
 
@@ -9,19 +9,19 @@ Eingabe (alles im selben Feld):
 
 | Quelle | Beispiel |
 |---|---|
-| Bluesky | `esa.int`, `jemand.bsky.social`, `bsky.app/profile/…` |
-| Mastodon | `@eff@mastodon.social`, `https://server.tld/@name` |
 | Reddit | `r/itookapicture`, Subreddit-URL |
 
 Enter im leeren Eingabefeld lädt `r/itookapicture` als Standard.
 
-Woran die App die Quelle erkennt: Eine Mastodon-Adresse hat zwei Teile mit `@`
-dazwischen, ein Bluesky-Handle ist eine Adresse mit Punkt, ein Subreddit
-beginnt mit `r/`. Passt eine Eingabe zu keiner Quelle, sagt die App das.
+Passt eine Eingabe nicht, sagt die App das.
 
 **X (Twitter) wird nicht mehr unterstützt.** X war nur über öffentliche
 Nitter-Spiegel lesbar, und davon funktioniert keiner mehr – die Quelle ist
 deshalb komplett entfernt.
+
+**Bluesky und Mastodon sind seit 30.10.2026 entfernt**, Reddit ist die einzige
+Quelle. Gespeicherte Kanäle dieser Dienste tauchen nicht mehr auf und fallen beim
+nächsten Speichern der Liste weg; Favoriten bleiben samt Download erhalten.
 
 ## Tempo
 
@@ -31,8 +31,8 @@ deshalb komplett entfernt.
   still. Wurde eine Quelle vor weniger als 5 Minuten geholt, wird sie gar nicht
   erst gefragt. Gespeichert werden nur Adressen – vier Quellen mit 365 Bildern
   sind 116 KB, 20 Quellen also rund 600 KB (Grenze des Browsers: ~5 MB).
-  Das funktioniert nur, weil `i.redd.it`, `cdn.bsky.app` und die
-  Mastodon-Server unsignierte Adressen ohne Ablaufdatum liefern.
+  Das funktioniert nur, weil `i.redd.it` unsignierte Adressen ohne Ablaufdatum
+  liefert.
 * **In der Wall View laufen 5 Quellen gleichzeitig** statt eine nach der
   anderen, und jede erscheint, sobald sie da ist; die Fußleiste zeigt den
   Fortschritt. Gemessen mit vier Konten: erstes Bild nach 289 ms, alles fertig
@@ -43,14 +43,12 @@ deshalb komplett entfernt.
 
 * **Kleine Bilder fliegen raus.** Alles, dessen längste Kante unter 400 px
   liegt, kommt gar nicht erst an die Wand – das sind Symbole, Logos und
-  Briefmarken. Bluesky und Mastodon nennen die Maße vorab (`aspectRatio` bzw.
-  `meta.original`), dort wird vor dem Laden gefiltert; Reddit nennt sie nicht,
-  dort greift der Filter beim Ankommen des Bildes.
+  Briefmarken. Reddit nennt die Maße nicht vorab, deshalb greift der Filter beim
+  Ankommen des Bildes.
 * **Große Bilder laufen im Raster mit 700 px Breite.** Eine Rasterspalte ist
   rund 270 px breit; ein 4000-px-Original wäre reine Verschwendung
-  (Reddit: im Schnitt 915 KB voll gegen 95 KB verkleinert). Bluesky (`thumb`,
-  1000 px) und Mastodon (`preview_url`, ~600 px) liefern fertige Fassungen
-  mit, Reddit läuft über `images.weserv.nl` (`&we` verhindert, dass kleine
+  (Reddit: im Schnitt 915 KB voll gegen 95 KB verkleinert). Die Vorschau läuft
+  über `images.weserv.nl` (`&we` verhindert, dass kleine
   Bilder aufgeblasen werden).
 * **Das Original bleibt erhalten.** Großansicht, der Download-Knopf an jedem
   Bild und das Favoriten-ZIP holen immer die unveränderte Datei der Quelle.
@@ -117,8 +115,6 @@ src/app/sources/
   image-item.ts        gemeinsame Typen (ImageItem, SourceAdapter), Größenfilter
   rss2json.ts          Helfer für api.rss2json.com (nur noch Reddits Notausgang)
   index.ts             Verzeichnis aller Quellen
-  bluesky/bluesky.source.ts Bluesky, direkt aus dem Browser
-  mastodon/mastodon.source.ts Mastodon, direkt aus dem Browser
   reddit/reddit.source.ts   Reddit über den eigenen Vermittler (worker/)
 ```
 
@@ -127,16 +123,6 @@ src/app/sources/
 - Reddits Feed lässt sich nicht direkt aus dem Browser lesen (kein
   CORS-Header), deshalb der eigene Vermittler. Die Fußleiste zeigt für jede
   Quelle an, ob sie gerade erreichbar ist (Klick darauf prüft sofort neu).
-- **Bluesky:** bis zu 100 Bilder pro Konto. Die einzige Quelle ohne
-  Zwischenstation – Bluesky erlaubt fremden Seiten den Zugriff ausdrücklich
-  (CORS), und der Filter `posts_with_media` wirft den Text schon auf dem Server
-  weg. Kein Schlüssel, keine Anmeldung, kein Ratenlimit, das sich alle teilen
-  (Bluesky zählt pro IP, also pro Besucher). Videos werden übersprungen.
-- **Mastodon:** bis zu 100 Bilder pro Konto, ebenfalls ohne Zwischenstation.
-  Gefragt wird immer der Server, auf dem das Konto liegt (`@name@server.tld`).
-  Pro Abruf gibt Mastodon 40 Beiträge heraus, die App blättert höchstens
-  dreimal. Die Bilder lassen sich hier sogar direkt herunterladen – für das ZIP
-  braucht es keinen Umweg.
 - **Reddit:** bis zu 100 Bilder pro Subreddit über den eigenen Vermittler
   (Cloudflare Worker, Quelltext in [`worker/`](worker/)). Er holt Reddits Feed
   direkt; nur über ihn kommen auch Subreddits an, die `rss2json` nicht
@@ -148,6 +134,5 @@ src/app/sources/
   `preview.redd.it/<id>.jpg` und `i.redd.it/<id>.jpg` dieselbe Datei sind,
   rechnet die App die Adresse auf das Original um.
 - Der Download (einzelnes Bild wie auch Favoriten-ZIP) holt immer das
-  Original. Reddit und Bluesky verbieten das Laden per JavaScript auf ihren
-  Bild-Servern, deshalb laufen deren Bilder dafür über den Bild-Weiterleiter
-  `images.weserv.nl`; Mastodon erlaubt es direkt.
+  Original. Reddit verbietet das Laden per JavaScript auf seinen Bild-Servern,
+  deshalb laufen die Bilder dafür über den Bild-Weiterleiter `images.weserv.nl`.

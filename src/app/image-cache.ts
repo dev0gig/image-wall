@@ -10,9 +10,8 @@
  * Kanaele mit zusammen 365 Bildern 116 KB, 20 Kanaele also rund 600 KB. Der
  * Browser erlaubt etwa 5 MB.
  *
- * Dass die Adressen haltbar sind, ist Voraussetzung dafuer - `i.redd.it`,
- * `cdn.bsky.app` und die Mastodon-Server liefern unsignierte Adressen ohne
- * Ablaufdatum. Bei signierten Adressen (z. B. `preview.redd.it`) waere ein
+ * Dass die Adressen haltbar sind, ist Voraussetzung dafuer - `i.redd.it`
+ * liefert unsignierte Adressen ohne Ablaufdatum. Bei signierten Adressen (z. B. `preview.redd.it`) waere ein
  * Zwischenspeicher wertlos, weil sie nach kurzer Zeit tote Bilder liefern.
  */
 

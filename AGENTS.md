@@ -5,7 +5,7 @@ Image Wall ist eine kleine statische Angular-PWA. Meta-Infrastruktur bewusst kle
 ## Regeln
 - README lesen und bestehende Angular-21-Struktur nutzen.
 - localStorage-Schlüssel/Formate nicht beiläufig ändern; dort liegen Quellen, Favoriten, Galerie und Cache.
-- Quellenadapter für Bluesky/Mastodon/Reddit getrennt halten; X/Nitter nicht wieder einführen.
+- Reddit ist die einzige Quelle (Adapter in `src/app/sources/`); X, Bluesky, Mastodon und Pinterest nicht wieder einführen.
 - Originalbild-URLs für Großansicht/Download/Favoriten erhalten; Rasteroptimierung darf sie nicht ersetzen.
 - Caching-/Parallelitätsregeln nicht ohne Messgrund verschlechtern.
 - GitHub-Pages-baseHref und PWA-Service-Worker berücksichtigen.

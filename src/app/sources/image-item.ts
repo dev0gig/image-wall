@@ -1,5 +1,5 @@
 /**
- * Gemeinsame Bausteine fuer alle Bild-Quellen (Reddit, Bluesky, Mastodon, ...).
+ * Gemeinsame Bausteine fuer alle Bild-Quellen (derzeit nur Reddit).
  *
  * Jede Quelle liegt in einem eigenen Unterordner und bringt einen Adapter mit,
  * der genau diese vier Fragen beantwortet:
@@ -9,7 +9,7 @@
  *   - wie bekomme ich ein Bild per JavaScript herunter (fuer das ZIP)?
  */
 
-export type SourceId = 'reddit' | 'bluesky' | 'mastodon';
+export type SourceId = 'reddit';
 
 /**
  * Bilder unter dieser Kantenlaenge sind Symbole, Logos oder Briefmarken und
@@ -18,12 +18,6 @@ export type SourceId = 'reddit' | 'bluesky' | 'mastodon';
  * nicht.
  */
 export const MIN_EDGE = 400;
-
-/** Ist das Bild gross genug fuers Raster? Ohne bekannte Masse: ja. */
-export function isBigEnough(width?: number, height?: number): boolean {
-  if (!width || !height) return true;
-  return Math.max(width, height) >= MIN_EDGE;
-}
 
 export interface ImageItem {
   /**
@@ -38,7 +32,7 @@ export interface ImageItem {
    */
   preview?: string;
 
-  /** Gespeicherter Kanalname: `r/itookapicture`, `bsky:esa.int`, `mastodon:eff@mastodon.social`. */
+  /** Gespeicherter Kanalname: `r/itookapicture`; alte Favoriten auch `bsky:esa.int` oder `mastodon:eff@mastodon.social`. */
   channel: string;
 }
 
