@@ -73,15 +73,21 @@
         } @else {
           <div class="relative flex flex-col flex-1 lg:flex-none min-w-0">
             <label for="channel-input" class="text-[9px] uppercase tracking-widest opacity-40 mb-1">Source: Subreddit</label>
-            <input
-              id="channel-input"
-              type="text"
-              [value]="channelName()"
-              (input)="updateChannelName($event)"
-              (keyup.enter)="loadImages()"
-              placeholder="r/itookapicture"
-              class="bg-transparent border-b border-white/30 px-0 py-1 text-sm focus:outline-none focus:border-white transition-colors w-full lg:w-48 placeholder-white/20"
-            />
+            <div class="flex items-baseline border-b border-white/30 focus-within:border-white transition-colors w-full lg:w-48">
+              <label for="channel-input" class="py-1 text-sm opacity-60 select-none">r/</label>
+              <input
+                id="channel-input"
+                type="text"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+                [value]="channelInput()"
+                (input)="updateChannelName($event)"
+                (keyup.enter)="loadImages()"
+                placeholder="itookapicture"
+                class="bg-transparent px-0 py-1 text-sm focus:outline-none w-full min-w-0 placeholder-white/20"
+              />
+            </div>
           </div>
 
           <div class="flex gap-2 shrink-0">
@@ -406,7 +412,7 @@
             <h4 class="text-white font-medium mb-2 uppercase tracking-widest text-[10px]">Supported Sources</h4>
             <p>
               This tool shows <strong>Reddit</strong> subreddits.
-              Type <code>r/itookapicture</code> or paste the subreddit URL.
+              Just type the name (<code>itookapicture</code>), the <code>r/</code> is already in place, or paste the subreddit URL.
               <strong>X (Twitter) is no longer supported</strong> — it could only be read through public Nitter mirrors, and none of them work any more.
             </p>
           </section>

@@ -151,8 +151,8 @@ export const redditSource: SourceAdapter = {
 
   normalize: (input: string) => {
     const name = subredditFrom(input);
-    // Ohne Namen (z. B. nur "r/") gibt es nichts zu laden.
-    return name ? `r/${name}` : '';
+    // Ohne gueltigen Namen (z. B. nur "r/" oder "r/esa.int") gibt es nichts zu laden.
+    return /^[A-Za-z0-9_]+$/.test(name) ? `r/${name}` : '';
   },
 
   // Der gespeicherte Name enthaelt das "r/" bereits.

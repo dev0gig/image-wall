@@ -33,7 +33,7 @@ export function sourceForChannel(channel: string): SourceAdapter | null {
 
 /** Erklaert in einem Satz, was die Seite ueberhaupt annimmt. */
 export const INPUT_HELP =
-  'Das konnte ich nicht zuordnen. Erlaubt ist ein Subreddit (r/itookapicture) oder seine Adresse.';
+  'Das konnte ich nicht zuordnen. Erlaubt ist der Name eines Subreddits (itookapicture) oder seine Adresse.';
 
 /** Eingabe -> gespeicherter Kanalname, oder '' wenn nichts passt. */
 export function normalizeChannel(input: string): string {

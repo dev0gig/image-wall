@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, PLATFORM_ID, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { saveAs } from 'file-saver';
@@ -33,6 +33,8 @@ export type { ImageItem } from './sources';
 })
 export class App {
   channelName = signal('');
+  /** Was im Eingabefeld steht: der Name ohne das `r/` davor. */
+  channelInput = computed(() => this.channelName().replace(/^r\//i, ''));
   images = signal<ImageItem[]>([]);
   isLoading = signal(false);
   error = signal('');
@@ -423,8 +425,14 @@ export class App {
     }
   }
   
+  /**
+   * Das `r/` steht fest vor dem Feld, getippt wird nur der Name. Wer trotzdem
+   * `r/name` tippt oder eine Adresse einfuegt, landet beim selben Ergebnis.
+   */
   updateChannelName(event: Event) {
-    this.channelName.set((event.target as HTMLInputElement).value);
+    const eingabe = (event.target as HTMLInputElement).value.trim();
+    const name = (/reddit\.com\/r\//i.test(eingabe) ? normalizeChannel(eingabe) || eingabe : eingabe).replace(/^\/?r\//i, '');
+    this.channelName.set(name ? `r/${name}` : '');
   }
 
   /**

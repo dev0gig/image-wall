@@ -9,7 +9,7 @@ Eingabe (alles im selben Feld):
 
 | Quelle | Beispiel |
 |---|---|
-| Reddit | `r/itookapicture`, Subreddit-URL |
+| Reddit | `itookapicture` (das `r/` steht fest vor dem Feld), Subreddit-URL |
 
 Enter im leeren Eingabefeld lädt `r/itookapicture` als Standard.
 
